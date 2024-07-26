@@ -7,6 +7,7 @@ include scripts/build/simulations.mk
 include scripts/build/testing.mk
 include scripts/build/documentation.mk
 include scripts/build/build.mk
+include scripts/build/build-sym.mk
 
 .DEFAULT_GOAL := help
 

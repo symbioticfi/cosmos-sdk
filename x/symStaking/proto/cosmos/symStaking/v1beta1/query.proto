@@ -1,0 +1,106 @@
+syntax = "proto3";
+package cosmos.symStaking.v1beta1;
+
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "cosmos/symStaking/v1beta1/staking.proto";
+import "cosmos_proto/cosmos.proto";
+import "cosmos/query/v1/query.proto";
+import "amino/amino.proto";
+
+option go_package = "cosmossdk.io/x/symStaking/types";
+
+// Query defines the gRPC querier service.
+service Query {
+  // Validators queries all validators that match the given status.
+  //
+  // When called from another module, this query might consume a high amount of
+  // gas if the pagination field is incorrectly set.
+  rpc Validators(QueryValidatorsRequest) returns (QueryValidatorsResponse) {
+    option (cosmos.query.v1.module_query_safe) = true;
+    option (google.api.http).get               = "/cosmos/symStaking/v1beta1/validators";
+  }
+
+  // Validator queries validator info for given validator address.
+  rpc Validator(QueryValidatorRequest) returns (QueryValidatorResponse) {
+    option (cosmos.query.v1.module_query_safe) = true;
+    option (google.api.http).get               = "/cosmos/symStaking/v1beta1/validators/{validator_addr}";
+  }
+
+  // HistoricalInfo queries the historical info for given height.
+  rpc HistoricalInfo(QueryHistoricalInfoRequest) returns (QueryHistoricalInfoResponse) {
+    option (cosmos.query.v1.module_query_safe) = true;
+    option (google.api.http).get               = "/cosmos/symStaking/v1beta1/historical_info/{height}";
+  }
+
+  // Parameters queries the staking parameters.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (cosmos.query.v1.module_query_safe) = true;
+    option (google.api.http).get               = "/cosmos/symStaking/v1beta1/params";
+  }
+}
+
+// QueryValidatorsRequest is request type for Query/Validators RPC method.
+message QueryValidatorsRequest {
+  // status enables to query for validators matching a given status.
+  string status = 1;
+
+  // pagination defines an optional pagination for the request.
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+message ValidatorInfo {
+  option (cosmos_proto.message_added_in) = "x/symStaking v0.2.0";
+  // consensus_address is the consensus address of the validator.
+  string consensus_address = 1 [(cosmos_proto.field_added_in) = "x/symStaking v0.2.0"];
+}
+
+// QueryValidatorsResponse is response type for the Query/Validators RPC method
+message QueryValidatorsResponse {
+  repeated Validator validators = 1 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+
+  // validator_info contains additional information for each validator.
+  // The order of the elements in this list corresponds to the order of the elements in the validators list.
+  // For example, if you want the ValidatorInfo for the third validator in the validators list,
+  // you should look at the third element in the validator_info list.
+  repeated ValidatorInfo validator_info = 2 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+
+  cosmos.base.query.v1beta1.PageResponse pagination = 3;
+}
+
+// QueryValidatorRequest is response type for the Query/Validator RPC method
+message QueryValidatorRequest {
+  // validator_addr defines the validator address to query for.
+  string validator_addr = 1 [(cosmos_proto.scalar) = "cosmos.ValidatorAddressString"];
+}
+
+// QueryValidatorResponse is response type for the Query/Validator RPC method
+message QueryValidatorResponse {
+  // validator defines the validator info.
+  Validator validator = 1 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}
+
+// QueryHistoricalInfoRequest is request type for the Query/HistoricalInfo RPC
+// method.
+message QueryHistoricalInfoRequest {
+  // height defines at which height to query the historical info.
+  int64 height = 1;
+}
+
+// QueryHistoricalInfoResponse is response type for the Query/HistoricalInfo RPC
+// method.
+message QueryHistoricalInfoResponse {
+  // hist defines the historical info at the given height.
+  HistoricalInfo   hist              = 1 [deprecated = true];
+  HistoricalRecord historical_record = 2;
+}
+
+// QueryParamsRequest is request type for the Query/Params RPC method.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is response type for the Query/Params RPC method.
+message QueryParamsResponse {
+  // params holds all the parameters of this module.
+  Params params = 1 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}

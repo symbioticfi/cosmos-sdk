@@ -20,3 +20,6 @@ directories:
   - x/slashing/proto
   - x/staking/proto
   - x/upgrade/proto
+  - x/symStaking/proto
+  - x/symGov/proto
+  - x/symGenutil/proto
