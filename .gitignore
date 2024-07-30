@@ -20,10 +20,6 @@ buf-stamp
 artifacts
 simapp/simd/simd
 
-# Go
-go.work
-go.work.sum
-
 # Data - ideally these don't exist
 baseapp/data/*
 client/lcd/keys/*
