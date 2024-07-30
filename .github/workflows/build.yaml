@@ -4,7 +4,7 @@ on: [push]
 jobs:
   build:
     environment: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go 1.22.5
@@ -20,9 +20,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
-      - name: tmp
-        run: ./build/symd version
-
-
+      #- name: tmp
+      #  run: ./build/symd version
       - name: Deploy static site to S3 bucket
         run: aws s3 cp ./build/symd s3://cosmos-symbiotic-fi/symd-${{ github.sha }}  --acl public-read
