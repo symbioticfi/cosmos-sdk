@@ -107,7 +107,7 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, err
 	}
 
 	for _, v := range validators {
-		val, err := k.GetValidatorByConsAddr(ctx, v.ConsAddr[:])
+		val, err := k.GetValidatorByConsAddr(ctx, v.ConsAddr[:20])
 		if err != nil {
 			if errors.Is(err, stakingtypes.ErrNoValidatorFound) {
 				continue
