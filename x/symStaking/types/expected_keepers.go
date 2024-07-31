@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 
-	st "cosmossdk.io/api/cosmos/symStaking/v1beta1"
 	"cosmossdk.io/core/address"
 	"cosmossdk.io/math"
 	consensustypes "cosmossdk.io/x/consensus/types"
@@ -56,9 +55,6 @@ type ValidatorSet interface {
 	Validator(context.Context, sdk.ValAddress) (Validator, error)            // get a particular validator by operator address
 	ValidatorByConsAddr(context.Context, sdk.ConsAddress) (Validator, error) // get a particular validator by consensus address
 
-	// slash the validator and delegators of the validator, specifying offense height, offense power, and slash fraction
-	Slash(context.Context, sdk.ConsAddress, int64, int64, math.LegacyDec) (math.Int, error)
-	SlashWithInfractionReason(context.Context, sdk.ConsAddress, int64, int64, math.LegacyDec, st.Infraction) (math.Int, error)
 	Jail(context.Context, sdk.ConsAddress) error   // jail a validator
 	Unjail(context.Context, sdk.ConsAddress) error // unjail a validator
 

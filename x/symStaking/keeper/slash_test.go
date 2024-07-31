@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	sdkmath "cosmossdk.io/math"
 	"cosmossdk.io/x/symStaking/testutil"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -34,19 +33,4 @@ func (s *KeeperTestSuite) TestRevocation() {
 	val, err = keeper.GetValidator(ctx, valAddr)
 	require.NoError(err)
 	require.False(val.IsJailed())
-}
-
-// tests Slash at a future height (must error)
-func (s *KeeperTestSuite) TestSlashAtFutureHeight() {
-	ctx, keeper := s.ctx, s.stakingKeeper
-	require := s.Require()
-
-	consAddr := sdk.ConsAddress(PKs[0].Address())
-	validator := testutil.NewValidator(s.T(), sdk.ValAddress(PKs[0].Address().Bytes()), PKs[0])
-	require.NoError(keeper.SetValidator(ctx, validator))
-	require.NoError(keeper.SetValidatorByConsAddr(ctx, validator))
-
-	fraction := sdkmath.LegacyNewDecWithPrec(5, 1)
-	_, err := keeper.Slash(ctx, consAddr, 1, 10, fraction)
-	require.Error(err)
 }

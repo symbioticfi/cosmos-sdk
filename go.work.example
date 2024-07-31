@@ -47,6 +47,7 @@ use (
 	./x/upgrade
 	./x/epochs
 	./x/symStaking
+	./x/symSlash
 	./x/symGov
 	./symapp
 )

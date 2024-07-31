@@ -96,6 +96,10 @@ const (
 )
 
 func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, error) {
+	if k.networkMiddlewareAddress == "" {
+		panic("middleware address is not set")
+	}
+
 	blockHash, err := k.getFinalizedBlockHash()
 	if err != nil {
 		return "", err

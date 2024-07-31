@@ -68,6 +68,9 @@ import (
 	govkeeper "cosmossdk.io/x/symGov/keeper"
 	govtypes "cosmossdk.io/x/symGov/types"
 	govv1beta1 "cosmossdk.io/x/symGov/types/v1beta1"
+	slashing "cosmossdk.io/x/symSlash"
+	slashingkeeper "cosmossdk.io/x/symSlash/keeper"
+	slashingtypes "cosmossdk.io/x/symSlash/types"
 	staking "cosmossdk.io/x/symStaking"
 	stakingkeeper "cosmossdk.io/x/symStaking/keeper"
 	stakingtypes "cosmossdk.io/x/symStaking/types"
@@ -141,6 +144,7 @@ type SymApp struct {
 	AuthKeeper            authkeeper.AccountKeeper
 	BankKeeper            bankkeeper.BaseKeeper
 	StakingKeeper         *stakingkeeper.Keeper
+	SlashingKeeper        slashingkeeper.Keeper
 	GovKeeper             govkeeper.Keeper
 	UpgradeKeeper         *upgradekeeper.Keeper
 	AuthzKeeper           authzkeeper.Keeper
@@ -232,7 +236,7 @@ func NewSymApp(
 	bApp.SetTxEncoder(txConfig.TxEncoder())
 
 	keys := storetypes.NewKVStoreKeys(
-		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
+		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, consensusparamtypes.StoreKey, upgradetypes.StoreKey, feegrant.StoreKey,
 		circuittypes.StoreKey,
 		authzkeeper.StoreKey, group.StoreKey, pooltypes.StoreKey,
@@ -327,6 +331,10 @@ func NewSymApp(
 
 	app.PoolKeeper = poolkeeper.NewKeeper(appCodec, runtime.NewEnvironment(runtime.NewKVStoreService(keys[pooltypes.StoreKey]), logger.With(log.ModuleKey, "x/protocolpool")), app.AuthKeeper, app.BankKeeper, app.StakingKeeper, authtypes.NewModuleAddress(govtypes.ModuleName).String())
 
+	app.SlashingKeeper = slashingkeeper.NewKeeper(runtime.NewEnvironment(runtime.NewKVStoreService(keys[slashingtypes.StoreKey]), logger.With(log.ModuleKey, "x/symSlash")),
+		appCodec, legacyAmino, app.StakingKeeper, authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
 	app.FeeGrantKeeper = feegrantkeeper.NewKeeper(runtime.NewEnvironment(runtime.NewKVStoreService(keys[feegrant.StoreKey]), logger.With(log.ModuleKey, "x/feegrant")), appCodec, app.AuthKeeper)
 
 	// register the staking hooks
@@ -403,6 +411,7 @@ func NewSymApp(
 		banktypes.ModuleName:           bank.NewAppModule(appCodec, app.BankKeeper, app.AuthKeeper),
 		feegrant.ModuleName:            feegrantmodule.NewAppModule(appCodec, app.AuthKeeper, app.BankKeeper, app.FeeGrantKeeper, app.interfaceRegistry),
 		govtypes.ModuleName:            symGov.NewAppModule(appCodec, &app.GovKeeper, app.AuthKeeper, app.BankKeeper, app.PoolKeeper),
+		slashingtypes.ModuleName:       slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AuthKeeper, app.BankKeeper, app.StakingKeeper, app.interfaceRegistry, cometService),
 		stakingtypes.ModuleName:        staking.NewAppModule(appCodec, app.StakingKeeper, app.AuthKeeper, app.BankKeeper),
 		upgradetypes.ModuleName:        upgrade.NewAppModule(app.UpgradeKeeper),
 		authz.ModuleName:               authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AuthKeeper, app.BankKeeper, app.interfaceRegistry),
@@ -425,6 +434,7 @@ func NewSymApp(
 	// CanWithdrawInvariant invariant.
 	// NOTE: staking module is required if HistoricalEntries param > 0
 	app.ModuleManager.SetOrderBeginBlockers(
+		slashingtypes.ModuleName,
 		stakingtypes.ModuleName,
 		genutiltypes.ModuleName,
 		authz.ModuleName,
@@ -444,7 +454,7 @@ func NewSymApp(
 	// NOTE: The genutils module must also occur after auth so that it can access the params from auth.
 	genesisModuleOrder := []string{
 		accounts.ModuleName, authtypes.ModuleName, banktypes.ModuleName,
-		stakingtypes.ModuleName, govtypes.ModuleName,
+		stakingtypes.ModuleName, slashingtypes.ModuleName, govtypes.ModuleName,
 		genutiltypes.ModuleName, authz.ModuleName,
 		feegrant.ModuleName, group.ModuleName, upgradetypes.ModuleName,
 		vestingtypes.ModuleName, consensusparamtypes.ModuleName, circuittypes.ModuleName, pooltypes.ModuleName,
