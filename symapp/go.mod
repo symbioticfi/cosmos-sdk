@@ -27,9 +27,9 @@ require (
 	cosmossdk.io/x/group v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/mint v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/protocolpool v0.0.0-20230925135524-a1bc045b3190
-	cosmossdk.io/x/slashing v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/staking v0.0.0-00010101000000-000000000000 // indirect
 	cosmossdk.io/x/symGov v0.0.0-00010101000000-000000000000
+	cosmossdk.io/x/symSlash v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/symStaking v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/tx v0.13.3
 	cosmossdk.io/x/upgrade v0.0.0-20230613133644-0a778132a60f
@@ -37,7 +37,7 @@ require (
 	github.com/cometbft/cometbft/api v1.0.0-rc.1
 	github.com/cosmos/cosmos-db v1.0.2
 	// this version is not used as it is always replaced by the latest Cosmos SDK version
-	github.com/cosmos/cosmos-sdk v0.51.0
+	github.com/cosmos/cosmos-sdk v0.53.0
 	github.com/cosmos/gogoproto v1.5.0
 	github.com/golang/mock v1.6.0
 	github.com/spf13/cast v1.6.0
@@ -47,6 +47,8 @@ require (
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/protobuf v1.34.2
 )
+
+require cosmossdk.io/x/slashing v0.0.0-20240731202123-43dd23137e9d
 
 require (
 	buf.build/gen/go/cometbft/cometbft/protocolbuffers/go v1.34.2-20240701160653-fedbb9acfd2f.2 // indirect
@@ -89,7 +91,7 @@ require (
 	github.com/cosmos/crypto v0.1.2 // indirect
 	github.com/cosmos/go-bip39 v1.0.0 // indirect
 	github.com/cosmos/gogogateway v1.2.0 // indirect
-	github.com/cosmos/iavl v1.2.0 // indirect
+	github.com/cosmos/iavl v1.2.1-0.20240725141113-7adc688cf179 // indirect
 	github.com/cosmos/ics23/go v0.10.0 // indirect
 	github.com/cosmos/ledger-cosmos-go v0.13.3 // indirect
 	github.com/creachadair/atomicfile v0.3.4 // indirect
@@ -274,9 +276,9 @@ replace (
 	cosmossdk.io/x/nft => ../x/nft
 	cosmossdk.io/x/params => ../x/params
 	cosmossdk.io/x/protocolpool => ../x/protocolpool
-	cosmossdk.io/x/slashing => ../x/slashing
 	cosmossdk.io/x/staking => ../x/staking
 	cosmossdk.io/x/symGov => ../x/symGov
+	cosmossdk.io/x/symSlash => ../x/symSlash
 	cosmossdk.io/x/symStaking => ../x/symStaking
 	cosmossdk.io/x/tx => ../x/tx
 	cosmossdk.io/x/upgrade => ../x/upgrade

@@ -24,6 +24,7 @@ require (
 	cosmossdk.io/x/symGov v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/group v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/protocolpool v0.0.0-20230925135524-a1bc045b3190
+	cosmossdk.io/x/symSlash v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/symStaking v0.0.0-00010101000000-000000000000
 	cosmossdk.io/x/upgrade v0.0.0-20230613133644-0a778132a60f
 	github.com/cometbft/cometbft v1.0.0-rc1
@@ -259,6 +260,7 @@ replace (
 	cosmossdk.io/x/group => ../../x/group
 	cosmossdk.io/x/params => ../../x/params
 	cosmossdk.io/x/protocolpool => ../../x/protocolpool
+	cosmossdk.io/x/symSlash => ../../x/symSlash
 	cosmossdk.io/x/symStaking => ../../x/symStaking
 	cosmossdk.io/x/tx => ../../x/tx
 	cosmossdk.io/x/upgrade => ../../x/upgrade

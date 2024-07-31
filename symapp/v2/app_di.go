@@ -29,6 +29,7 @@ import (
 	_ "cosmossdk.io/x/protocolpool"
 	poolkeeper "cosmossdk.io/x/protocolpool/keeper"
 	govkeeper "cosmossdk.io/x/symGov/keeper"
+	slashingkeeper "cosmossdk.io/x/symSlash/keeper"
 	stakingkeeper "cosmossdk.io/x/symStaking/keeper"
 	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
 
@@ -56,6 +57,7 @@ type SymApp[T transaction.Tx] struct {
 	AuthKeeper            authkeeper.AccountKeeper
 	BankKeeper            bankkeeper.Keeper
 	StakingKeeper         *stakingkeeper.Keeper
+	SlashingKeeper        slashingkeeper.Keeper
 	GovKeeper             *govkeeper.Keeper
 	UpgradeKeeper         *upgradekeeper.Keeper
 	AuthzKeeper           authzkeeper.Keeper
@@ -179,6 +181,7 @@ func NewSymApp[T transaction.Tx](
 		&app.AuthKeeper,
 		&app.BankKeeper,
 		&app.StakingKeeper,
+		&app.SlashingKeeper,
 		&app.GovKeeper,
 		&app.UpgradeKeeper,
 		&app.AuthzKeeper,

@@ -19,6 +19,7 @@ import (
 	poolmodulev1 "cosmossdk.io/api/cosmos/protocolpool/module/v1"
 	genutilmodulev1 "cosmossdk.io/api/cosmos/symGenutil/module/v1"
 	govmodulev1 "cosmossdk.io/api/cosmos/symGov/module/v1"
+	slashingmodulev1 "cosmossdk.io/api/cosmos/symSlash/module/v1"
 	stakingmodulev1 "cosmossdk.io/api/cosmos/symStaking/module/v1"
 	txconfigv1 "cosmossdk.io/api/cosmos/tx/config/v1"
 	upgrademodulev1 "cosmossdk.io/api/cosmos/upgrade/module/v1"
@@ -46,6 +47,8 @@ import (
 	pooltypes "cosmossdk.io/x/protocolpool/types"
 	_ "cosmossdk.io/x/symGov" // import for side-effects
 	govtypes "cosmossdk.io/x/symGov/types"
+	_ "cosmossdk.io/x/symSlash" // import for side-effects
+	slashingtypes "cosmossdk.io/x/symSlash/types"
 	_ "cosmossdk.io/x/symStaking" // import for side-effects
 	stakingtypes "cosmossdk.io/x/symStaking/types"
 	_ "cosmossdk.io/x/upgrade" // import for side-effects
@@ -88,6 +91,7 @@ var (
 					// CanWithdrawInvariant invariant.
 					// NOTE: staking module is required if HistoricalEntries param > 0
 					BeginBlockers: []string{
+						slashingtypes.ModuleName,
 						stakingtypes.ModuleName,
 						authz.ModuleName,
 					},
@@ -112,6 +116,7 @@ var (
 						authtypes.ModuleName,
 						banktypes.ModuleName,
 						stakingtypes.ModuleName,
+						slashingtypes.ModuleName,
 						govtypes.ModuleName,
 						genutiltypes.ModuleName,
 						authz.ModuleName,
@@ -163,6 +168,10 @@ var (
 					Bech32PrefixValidator: "cosmosvaloper",
 					Bech32PrefixConsensus: "cosmosvalcons",
 				}),
+			},
+			{
+				Name:   slashingtypes.ModuleName,
+				Config: appconfig.WrapAny(&slashingmodulev1.Module{}),
 			},
 			{
 				Name:   "tx",

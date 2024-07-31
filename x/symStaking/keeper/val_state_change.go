@@ -21,9 +21,9 @@ import (
 // Called in each EndBlock
 func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.ValidatorUpdate, error) {
 	// Calculate validator set changes.
-	_, err := k.SymbioticUpdateValidatorsPower(ctx)
+	blockHash, err := k.SymbioticUpdateValidatorsPower(ctx)
 	if err != nil {
-		return nil, err
+		k.Logger.Error("SymbioticUpdateValidatorsPower failed", "err", err, "blockhash", blockHash)
 	}
 	//
 	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before

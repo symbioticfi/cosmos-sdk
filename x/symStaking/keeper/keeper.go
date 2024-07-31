@@ -111,9 +111,6 @@ func NewKeeper(
 	}
 
 	networkMiddlewareAddress := os.Getenv("MIDDLEWARE_ADDRESS")
-	if networkMiddlewareAddress == "" {
-		panic("middleware address isnt set")
-	}
 
 	debug := os.Getenv("DEBUG") != ""
 
