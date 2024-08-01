@@ -93,29 +93,3 @@ func (s *KeeperTestSuite) TestValidatorByUnbondingIDAccessors() {
 		})
 	}
 }
-
-func (s *KeeperTestSuite) TestUnbondingCanComplete() {
-	_, valAddrs := createValAddrs(3)
-	require := s.Require()
-
-	unbondingID := uint64(1)
-
-	// no unbondingID set
-	err := s.stakingKeeper.UnbondingCanComplete(s.ctx, unbondingID)
-	require.ErrorIs(err, types.ErrNoUnbondingType)
-
-	// validator unbonding
-	unbondingID++
-	require.NoError(s.stakingKeeper.SetUnbondingType(s.ctx, unbondingID, types.UnbondingType_ValidatorUnbonding))
-	err = s.stakingKeeper.UnbondingCanComplete(s.ctx, unbondingID)
-	require.ErrorIs(err, types.ErrNoValidatorFound)
-
-	val := testutil.NewValidator(s.T(), valAddrs[0], PKs[0])
-	require.NoError(s.stakingKeeper.SetValidator(s.ctx, val))
-	require.NoError(s.stakingKeeper.SetValidatorByUnbondingID(s.ctx, val, unbondingID))
-	err = s.stakingKeeper.UnbondingCanComplete(s.ctx, unbondingID)
-	require.ErrorIs(err, types.ErrUnbondingOnHoldRefCountNegative)
-
-	require.NoError(s.stakingKeeper.PutUnbondingOnHold(s.ctx, unbondingID))
-	require.NoError(s.stakingKeeper.UnbondingCanComplete(s.ctx, unbondingID))
-}

@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"cosmossdk.io/collections"
-	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/x/symStaking/types"
 )
 
@@ -104,31 +103,11 @@ func (k Keeper) UnbondingCanComplete(ctx context.Context, id uint64) error {
 
 	switch unbondingType {
 	case types.UnbondingType_ValidatorUnbonding:
-		if err := k.validatorUnbondingCanComplete(ctx, id); err != nil {
-			return err
-		}
 	default:
 		return types.ErrUnbondingNotFound
 	}
 
 	return nil
-}
-
-func (k Keeper) validatorUnbondingCanComplete(ctx context.Context, id uint64) error {
-	val, err := k.GetValidatorByUnbondingID(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if val.UnbondingOnHoldRefCount <= 0 {
-		return errorsmod.Wrapf(
-			types.ErrUnbondingOnHoldRefCountNegative,
-			"val(%s), expecting UnbondingOnHoldRefCount > 0, got %T",
-			val.OperatorAddress, val.UnbondingOnHoldRefCount,
-		)
-	}
-	val.UnbondingOnHoldRefCount--
-	return k.SetValidator(ctx, val)
 }
 
 // PutUnbondingOnHold allows an external module to stop an unbonding operation,
@@ -158,6 +137,5 @@ func (k Keeper) putValidatorOnHold(ctx context.Context, id uint64) error {
 		return err
 	}
 
-	val.UnbondingOnHoldRefCount++
 	return k.SetValidator(ctx, val)
 }

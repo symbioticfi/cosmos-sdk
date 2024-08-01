@@ -21,10 +21,19 @@ import (
 // Called in each EndBlock
 func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.ValidatorUpdate, error) {
 	// Calculate validator set changes.
-	blockHash, err := k.SymbioticUpdateValidatorsPower(ctx)
-	if err != nil {
-		k.Logger.Error("SymbioticUpdateValidatorsPower failed", "err", err, "blockhash", blockHash)
+
+	var err error
+	for i := 0; i < 3; i++ { // retry 3 times with different providers
+		_, err := k.SymbioticUpdateValidatorsPower(ctx)
+		if err == nil {
+			break
+		}
 	}
+
+	if err != nil {
+		return nil, fmt.Errorf("symbiotic error %w", err)
+	}
+
 	//
 	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
 	// UnbondAllMatureValidatorQueue.

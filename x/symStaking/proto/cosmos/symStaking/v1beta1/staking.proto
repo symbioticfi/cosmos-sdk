@@ -127,11 +127,8 @@ message Validator {
   // commission defines the commission parameters.
   Commission commission = 9 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
 
-  // strictly positive if this validator's unbonding has been stopped by external modules
-  int64 unbonding_on_hold_ref_count = 10;
-
   // list of unbonding ids, each uniquely identifying an unbonding of this validator
-  repeated uint64 unbonding_ids = 11;
+  repeated uint64 unbonding_ids = 10;
 }
 
 // BondStatus is the status of a validator.

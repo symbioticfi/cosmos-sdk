@@ -1,7 +1,9 @@
 package keeper
 
 import (
+	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	gogotypes "github.com/cosmos/gogoproto/types"
@@ -51,7 +53,7 @@ type Keeper struct {
 	cometInfoService      comet.Service
 
 	beaconAPIURL             string
-	ethAPIURL                string
+	ETH_API_URLS             []string
 	networkMiddlewareAddress string
 	debug                    bool
 
@@ -105,9 +107,12 @@ func NewKeeper(
 		beaconAPIURL = "https://eth-holesky-beacon.public.blastapi.io"
 	}
 
-	ethAPIURL := os.Getenv("ETH_API_URL")
-	if ethAPIURL == "" {
-		ethAPIURL = "https://endpoints.omniatech.io/v1/eth/holesky/public"
+	ethApiUrls := strings.Split(os.Getenv("ETH_API_URLS"), ",")
+
+	if len(ethApiUrls) == 0 {
+		ethApiUrls = append(ethApiUrls, "https://endpoints.omniatech.io/v1/eth/holesky/public")
+		ethApiUrls = append(ethApiUrls, "https://holesky.drpc.org")
+		ethApiUrls = append(ethApiUrls, "https://ethereum-holesky.blockpi.network/v1/rpc/public")
 	}
 
 	networkMiddlewareAddress := os.Getenv("MIDDLEWARE_ADDRESS")
@@ -125,7 +130,7 @@ func NewKeeper(
 		consensusAddressCodec:    consensusAddressCodec,
 		cometInfoService:         cometInfoService,
 		beaconAPIURL:             beaconAPIURL,
-		ethAPIURL:                ethAPIURL,
+		ETH_API_URLS:             ethApiUrls,
 		networkMiddlewareAddress: networkMiddlewareAddress,
 		debug:                    debug,
 		LastTotalPower:           collections.NewItem(sb, types.LastTotalPowerKey, "last_total_power", sdk.IntValue),
@@ -198,4 +203,8 @@ func (k Keeper) ValidatorAddressCodec() addresscodec.Codec {
 // ConsensusAddressCodec returns the app consensus address codec.
 func (k Keeper) ConsensusAddressCodec() addresscodec.Codec {
 	return k.consensusAddressCodec
+}
+
+func (k Keeper) GetEthApiUrl() string {
+	return k.ETH_API_URLS[rand.Intn(len(k.ETH_API_URLS))]
 }
