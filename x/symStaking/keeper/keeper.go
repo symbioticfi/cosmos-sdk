@@ -109,8 +109,8 @@ func NewKeeper(
 
 	ethApiUrls := strings.Split(os.Getenv("ETH_API_URLS"), ",")
 
-	if len(ethApiUrls) == 0 {
-		ethApiUrls = append(ethApiUrls, "https://endpoints.omniatech.io/v1/eth/holesky/public")
+	if len(ethApiUrls) == 1 && ethApiUrls[0] == "" {
+		ethApiUrls[0] = "https://endpoints.omniatech.io/v1/eth/holesky/public"
 		ethApiUrls = append(ethApiUrls, "https://holesky.drpc.org")
 		ethApiUrls = append(ethApiUrls, "https://ethereum-holesky.blockpi.network/v1/rpc/public")
 	}

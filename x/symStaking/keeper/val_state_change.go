@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	gogotypes "github.com/cosmos/gogoproto/types"
 
@@ -24,10 +25,11 @@ func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.Validato
 
 	var err error
 	for i := 0; i < 3; i++ { // retry 3 times with different providers
-		_, err := k.SymbioticUpdateValidatorsPower(ctx)
+		_, err = k.SymbioticUpdateValidatorsPower(ctx)
 		if err == nil {
 			break
 		}
+		time.Sleep(time.Millisecond * 100)
 	}
 
 	if err != nil {
