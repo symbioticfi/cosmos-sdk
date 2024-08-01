@@ -531,11 +531,6 @@ func (k Keeper) unbondMatureValidators(
 			return fmt.Errorf("unexpected validator in unbonding queue; status was not unbonding")
 		}
 
-		// if the ref count is not zero, early exit.
-		if val.UnbondingOnHoldRefCount != 0 {
-			return nil
-		}
-
 		// otherwise do proper unbonding
 		for _, id := range val.UnbondingIds {
 			if err = k.DeleteUnbondingIndex(ctx, id); err != nil {

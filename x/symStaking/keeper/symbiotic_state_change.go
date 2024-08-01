@@ -156,7 +156,7 @@ func (k Keeper) getFinalizedBlockHash() (string, error) {
 
 // Function to get the finality slot from the Beacon Chain API
 func (k Keeper) getCurrentEpoch(ctx context.Context, blockHash string) (*big.Int, error) {
-	client, err := ethclient.Dial(k.ethAPIURL)
+	client, err := ethclient.Dial(k.GetEthApiUrl())
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (k Keeper) getCurrentEpoch(ctx context.Context, blockHash string) (*big.Int
 }
 
 func (k Keeper) GetSymbioticValidatorSet(ctx context.Context, blockHash string) ([]Validator, error) {
-	client, err := ethclient.Dial(k.ethAPIURL)
+	client, err := ethclient.Dial(k.GetEthApiUrl())
 	if err != nil {
 		return nil, err
 	}

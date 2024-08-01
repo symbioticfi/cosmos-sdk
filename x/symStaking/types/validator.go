@@ -45,16 +45,15 @@ func NewValidator(operator string, pubKey cryptotypes.PubKey, description Descri
 	}
 
 	return Validator{
-		OperatorAddress:         operator,
-		ConsensusPubkey:         pkAny,
-		Jailed:                  false,
-		Status:                  Unbonded,
-		Tokens:                  math.ZeroInt(),
-		Description:             description,
-		UnbondingHeight:         int64(0),
-		UnbondingTime:           time.Unix(0, 0).UTC(),
-		Commission:              NewCommission(math.LegacyZeroDec(), math.LegacyZeroDec(), math.LegacyZeroDec()),
-		UnbondingOnHoldRefCount: 0,
+		OperatorAddress: operator,
+		ConsensusPubkey: pkAny,
+		Jailed:          false,
+		Status:          Unbonded,
+		Tokens:          math.ZeroInt(),
+		Description:     description,
+		UnbondingHeight: int64(0),
+		UnbondingTime:   time.Unix(0, 0).UTC(),
+		Commission:      NewCommission(math.LegacyZeroDec(), math.LegacyZeroDec(), math.LegacyZeroDec()),
 	}, nil
 }
 
