@@ -19,18 +19,15 @@ import (
 )
 
 // Struct to unmarshal the response from the Beacon Chain API
-type FinalityUpdate struct {
+type Block struct {
 	Data struct {
-		FinalizedHeader struct {
-			ExecutionPayloadHeader struct {
-				BlockHash string `json:"block_hash"`
-			} `json:"execution_payload_header"`
-		} `json:"finalized_header"`
-		AttestedHeader struct {
-			ExecutionPayloadHeader struct {
-				BlockHash string `json:"block_hash"`
-			} `json:"execution_payload_header"`
-		} `json:"attested_header"`
+		Message struct {
+			Body struct {
+				ETH1Data struct {
+					BlockHash string `json:"block_hash"`
+				} `json:"eth1_data"`
+			} `json:"body"`
+		} `json:"message"`
 	} `json:"data"`
 }
 
@@ -59,7 +56,8 @@ type Validator struct {
 }
 
 const (
-	FINALITY_UPDATE_PATH            = "/eth/v1/beacon/light_client/finality_update"
+	BLOCK_FINALIZED_PATH            = "/eth/v2/beacon/blocks/finalized"
+	BLOCK_ATTESTED_PATH             = "/eth/v2/beacon/blocks/head"
 	GET_VALIDATOR_SET_FUNCTION_NAME = "getValidatorSet"
 	GET_CURRENT_EPOCH_SELECTOR      = "b97dd9e2"
 	GET_VALIDATOR_SET_ABI           = `[{
@@ -127,7 +125,13 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, err
 
 // Function to get the finality slot from the Beacon Chain API
 func (k Keeper) getFinalizedBlockHash() (string, error) {
-	resp, err := http.Get(k.beaconAPIURL + FINALITY_UPDATE_PATH)
+	url := k.GetBeaconApiUrl()
+	if k.debug {
+		url += BLOCK_ATTESTED_PATH
+	} else {
+		url += BLOCK_FINALIZED_PATH
+	}
+	resp, err := http.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("error making HTTP request: %v", err)
 	}
@@ -141,17 +145,14 @@ func (k Keeper) getFinalizedBlockHash() (string, error) {
 		return "", fmt.Errorf("error reading response body: %v", err)
 	}
 
-	var finalityUpdate FinalityUpdate
-	err = json.Unmarshal(body, &finalityUpdate)
+	var block Block
+	err = json.Unmarshal(body, &block)
 	if err != nil {
 		return "", fmt.Errorf("error unmarshaling JSON: %v", err)
+
 	}
 
-	if k.debug {
-		return finalityUpdate.Data.AttestedHeader.ExecutionPayloadHeader.BlockHash, nil
-	}
-
-	return finalityUpdate.Data.FinalizedHeader.ExecutionPayloadHeader.BlockHash, nil
+	return block.Data.Message.Body.ETH1Data.BlockHash, nil
 }
 
 // Function to get the finality slot from the Beacon Chain API
