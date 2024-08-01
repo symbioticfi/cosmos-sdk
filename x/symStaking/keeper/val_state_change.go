@@ -24,12 +24,15 @@ func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.Validato
 	// Calculate validator set changes.
 
 	var err error
-	for i := 0; i < 3; i++ { // retry 3 times with different providers
+	for i := 0; i < 5; i++ { // retry 5 times with different random providers
 		_, err = k.SymbioticUpdateValidatorsPower(ctx)
 		if err == nil {
 			break
 		}
-		time.Sleep(time.Millisecond * 100)
+
+		k.Logger.Warn("Update validator power error; Trying ...", "error", err)
+
+		time.Sleep(time.Millisecond * 200)
 	}
 
 	if err != nil {

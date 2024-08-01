@@ -52,8 +52,8 @@ type Keeper struct {
 	consensusAddressCodec addresscodec.Codec
 	cometInfoService      comet.Service
 
-	beaconAPIURL             string
-	ETH_API_URLS             []string
+	beaconApiUrls            []string
+	ethApiUrls               []string
 	networkMiddlewareAddress string
 	debug                    bool
 
@@ -102,17 +102,23 @@ func NewKeeper(
 		panic("validator and/or consensus address codec are nil")
 	}
 
-	beaconAPIURL := os.Getenv("BEACON_API_URL")
-	if beaconAPIURL == "" {
-		beaconAPIURL = "https://eth-holesky-beacon.public.blastapi.io"
+	// USE ONLY YOUR LOCAL BEACON CLIENT FOR SAFETY!!!
+	beaconApiUrls := strings.Split(os.Getenv("BEACON_API_URLS"), ",")
+	if len(beaconApiUrls) == 1 && beaconApiUrls[0] == "" {
+		beaconApiUrls[0] = "https://eth-holesky-beacon.public.blastapi.io"
+		beaconApiUrls = append(beaconApiUrls, "http://unstable.holesky.beacon-api.nimbus.team")
+		beaconApiUrls = append(beaconApiUrls, "https://holesky-beacon.w3node.com/51e0ca88a9a87f962e5d1ee2902f18f26c06ba3a9158501448f28c26dc66cbdd/api")
 	}
 
 	ethApiUrls := strings.Split(os.Getenv("ETH_API_URLS"), ",")
 
 	if len(ethApiUrls) == 1 && ethApiUrls[0] == "" {
-		ethApiUrls[0] = "https://endpoints.omniatech.io/v1/eth/holesky/public"
-		ethApiUrls = append(ethApiUrls, "https://holesky.drpc.org")
+		ethApiUrls[0] = "https://rpc.ankr.com/eth_holesky"
+		ethApiUrls = append(ethApiUrls, "https://1rpc.io/holesky")
 		ethApiUrls = append(ethApiUrls, "https://ethereum-holesky.blockpi.network/v1/rpc/public")
+		ethApiUrls = append(ethApiUrls, "https://eth-holesky.public.blastapi.io")
+		ethApiUrls = append(ethApiUrls, "https://ethereum-holesky.gateway.tatum.io")
+		ethApiUrls = append(ethApiUrls, "https://holesky.gateway.tenderly.co")
 	}
 
 	networkMiddlewareAddress := os.Getenv("MIDDLEWARE_ADDRESS")
@@ -129,8 +135,8 @@ func NewKeeper(
 		validatorAddressCodec:    validatorAddressCodec,
 		consensusAddressCodec:    consensusAddressCodec,
 		cometInfoService:         cometInfoService,
-		beaconAPIURL:             beaconAPIURL,
-		ETH_API_URLS:             ethApiUrls,
+		beaconApiUrls:            beaconApiUrls,
+		ethApiUrls:               ethApiUrls,
 		networkMiddlewareAddress: networkMiddlewareAddress,
 		debug:                    debug,
 		LastTotalPower:           collections.NewItem(sb, types.LastTotalPowerKey, "last_total_power", sdk.IntValue),
@@ -206,5 +212,9 @@ func (k Keeper) ConsensusAddressCodec() addresscodec.Codec {
 }
 
 func (k Keeper) GetEthApiUrl() string {
-	return k.ETH_API_URLS[rand.Intn(len(k.ETH_API_URLS))]
+	return k.ethApiUrls[rand.Intn(len(k.ethApiUrls))]
+}
+
+func (k Keeper) GetBeaconApiUrl() string {
+	return k.beaconApiUrls[rand.Intn(len(k.beaconApiUrls))]
 }
