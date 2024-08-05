@@ -36,7 +36,7 @@ func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.Validato
 	}
 
 	if err != nil {
-		panic(fmt.Errorf("Symbiotic get validator updates error: %w", err))
+		panic(errors.Join(types.ErrSymbioticValUpdate, err))
 	}
 
 	//

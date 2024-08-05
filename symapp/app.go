@@ -234,6 +234,7 @@ func NewSymApp(
 	bApp.SetVersion(version.Version)
 	bApp.SetInterfaceRegistry(interfaceRegistry)
 	bApp.SetTxEncoder(txConfig.TxEncoder())
+	bApp.AddRunTxRecoveryHandler(RecoverHandler)
 
 	keys := storetypes.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey, slashingtypes.StoreKey,
@@ -767,4 +768,21 @@ func BlockedAddresses() map[string]bool {
 	delete(modAccAddrs, authtypes.NewModuleAddress(govtypes.ModuleName).String())
 
 	return modAccAddrs
+}
+
+func RecoverHandler(recoveryObj interface{}) error {
+	err, ok := recoveryObj.(error)
+	if !ok {
+		return nil
+	}
+
+	if stakingtypes.ErrSymbioticValUpdate.Is(err) {
+		panic(fmt.Errorf("Symbiotic panic: %w", err))
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

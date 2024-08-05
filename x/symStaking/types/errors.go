@@ -50,4 +50,6 @@ var (
 	// consensus key errors
 	ErrExceedingMaxConsPubKeyRotations = errors.Register(ModuleName, 46, "exceeding maximum consensus pubkey rotations within unbonding period")
 	ErrConsensusPubKeyLenInvalid       = errors.Register(ModuleName, 47, "consensus pubkey len is invalid")
+
+	ErrSymbioticValUpdate = errors.Register(ModuleName, 48, "symbiotic validator update error")
 )
