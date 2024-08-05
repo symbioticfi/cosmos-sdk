@@ -9,6 +9,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"strings"
 
 	abci "github.com/cometbft/cometbft/api/cometbft/abci/v1"
 	dbm "github.com/cosmos/cosmos-db"
@@ -770,9 +771,10 @@ func BlockedAddresses() map[string]bool {
 	return modAccAddrs
 }
 
+// we use this handler to restart on failure on our errors
 func RecoverHandler(recoveryObj interface{}) error {
 	err, ok := recoveryObj.(error)
-	if !ok {
+	if !ok || err == nil {
 		return nil
 	}
 
@@ -780,9 +782,10 @@ func RecoverHandler(recoveryObj interface{}) error {
 		panic(fmt.Errorf("Symbiotic panic: %w", err))
 	}
 
-	if err != nil {
-		return err
+	// IDK after this error node stops receiving blocks
+	if strings.Contains(err.Error(), "peer is not sending us data fast enough") {
+		panic(fmt.Errorf("Consensus peer error: %w", err))
 	}
 
-	return nil
+	return err
 }
