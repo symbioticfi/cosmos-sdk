@@ -107,7 +107,7 @@ func NewKeeper(
 	if len(beaconApiUrls) == 1 && beaconApiUrls[0] == "" {
 		beaconApiUrls[0] = "https://eth-holesky-beacon.public.blastapi.io"
 		beaconApiUrls = append(beaconApiUrls, "http://unstable.holesky.beacon-api.nimbus.team")
-		beaconApiUrls = append(beaconApiUrls, "https://holesky-beacon.w3node.com/51e0ca88a9a87f962e5d1ee2902f18f26c06ba3a9158501448f28c26dc66cbdd/api")
+		beaconApiUrls = append(beaconApiUrls, "https://ethereum-holesky-beacon-api.publicnode.com")
 	}
 
 	ethApiUrls := strings.Split(os.Getenv("ETH_API_URLS"), ",")
