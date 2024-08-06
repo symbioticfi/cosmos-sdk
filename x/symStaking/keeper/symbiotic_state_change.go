@@ -23,9 +23,9 @@ type Block struct {
 	Data struct {
 		Message struct {
 			Body struct {
-				ETH1Data struct {
+				ExecutionPayload struct {
 					BlockHash string `json:"block_hash"`
-				} `json:"eth1_data"`
+				} `json:"execution_payload"`
 			} `json:"body"`
 		} `json:"message"`
 	} `json:"data"`
@@ -152,7 +152,7 @@ func (k Keeper) getFinalizedBlockHash() (string, error) {
 
 	}
 
-	return block.Data.Message.Body.ETH1Data.BlockHash, nil
+	return block.Data.Message.Body.ExecutionPayload.BlockHash, nil
 }
 
 // Function to get the finality slot from the Beacon Chain API
