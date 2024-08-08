@@ -56,6 +56,7 @@ type Validator struct {
 }
 
 const (
+	SYMBIOTIC_SYNC_PERIOD           = 10
 	BLOCK_FINALIZED_PATH            = "/eth/v2/beacon/blocks/finalized"
 	BLOCK_ATTESTED_PATH             = "/eth/v2/beacon/blocks/head"
 	GET_VALIDATOR_SET_FUNCTION_NAME = "getValidatorSet"
@@ -96,6 +97,10 @@ const (
 func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, error) {
 	if k.networkMiddlewareAddress == "" {
 		panic("middleware address is not set")
+	}
+
+	if k.HeaderService.HeaderInfo(ctx).Height%SYMBIOTIC_SYNC_PERIOD != 0 {
+		return "", nil
 	}
 
 	blockHash, err := k.getFinalizedBlockHash()

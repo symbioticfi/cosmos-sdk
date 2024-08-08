@@ -114,7 +114,6 @@ func NewKeeper(
 
 	if len(ethApiUrls) == 1 && ethApiUrls[0] == "" {
 		ethApiUrls[0] = "https://rpc.ankr.com/eth_holesky"
-		ethApiUrls = append(ethApiUrls, "https://1rpc.io/holesky")
 		ethApiUrls = append(ethApiUrls, "https://ethereum-holesky.blockpi.network/v1/rpc/public")
 		ethApiUrls = append(ethApiUrls, "https://eth-holesky.public.blastapi.io")
 		ethApiUrls = append(ethApiUrls, "https://ethereum-holesky.gateway.tatum.io")
