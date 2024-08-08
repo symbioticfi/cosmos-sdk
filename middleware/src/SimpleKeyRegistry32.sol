@@ -9,14 +9,14 @@ import {IVault} from "@symbiotic/interfaces/vault/IVault.sol";
 abstract contract SimpleKeyRegistry32 {
     using Checkpoints for Checkpoints.Trace208;
 
+    error DuplicateKey();
+
     mapping(address => Checkpoints.Trace208) private operatorToIdx;
     mapping(bytes32 => address) private keyToOperator;
     mapping(uint208 => bytes32) private idxToKey;
     uint208 private totalKeys;
 
     uint208 internal constant EMPTY_KEY_IDX = 0;
-
-    error DuplicateKey();
 
     function getOperatorByKey(bytes32 key) public view returns (address) {
         return keyToOperator[key];

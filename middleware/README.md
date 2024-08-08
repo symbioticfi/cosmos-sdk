@@ -1,1 +1,0 @@
-[Link to the origin repository](https://github.com/symbioticfi/simple-network)

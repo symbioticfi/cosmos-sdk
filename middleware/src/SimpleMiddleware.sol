@@ -14,31 +14,15 @@ import {IOptInService} from "@symbiotic/interfaces/service/IOptInService.sol";
 import {IEntity} from "@symbiotic/interfaces/common/IEntity.sol";
 import {ISlasher} from "@symbiotic/interfaces/slasher/ISlasher.sol";
 import {IVetoSlasher} from "@symbiotic/interfaces/slasher/IVetoSlasher.sol";
+import {Subnetwork} from "@symbiotic/contracts/libraries/Subnetwork.sol";
 
 import {SimpleKeyRegistry32} from "./SimpleKeyRegistry32.sol";
-import {MapWithTimeData} from "./utils/MapWithTimeData.sol";
+import {MapWithTimeData} from "./libraries/MapWithTimeData.sol";
 
 contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using MapWithTimeData for EnumerableMap.AddressToUintMap;
-
-    address public immutable NETWORK;
-    address public immutable OPERATOR_REGISTRY;
-    address public immutable VAULT_REGISTRY;
-    address public immutable OPERATOR_NET_OPTIN;
-    address public immutable NET_VAULT_OPTIN;
-    address public immutable OWNER;
-    uint48 public immutable EPOCH_DURATION;
-    uint48 public immutable SLASHING_WINDOW;
-    uint48 public immutable START_TIME;
-
-    uint48 private constant INSTANT_SLASHER_TYPE = 0;
-    uint48 private constant VETO_SLASHER_TYPE = 1;
-
-    EnumerableMap.AddressToUintMap internal operators;
-    EnumerableMap.AddressToUintMap internal vaults;
-    mapping(uint48 => uint256) public totalStakeCache;
-    mapping(uint48 => mapping(address => uint256)) public operatorStakeCache;
+    using Subnetwork for address;
 
     error NotOperator();
     error NotVault();
@@ -52,6 +36,8 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
     error VaultEpochTooShort();
     error VaultGracePeriodNotPassed();
 
+    error InvalidSubnetworksCnt();
+
     error TooOldEpoch();
     error InvalidEpoch();
 
@@ -64,8 +50,27 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
         bytes32 key;
     }
 
+    address public immutable NETWORK;
+    address public immutable OPERATOR_REGISTRY;
+    address public immutable VAULT_REGISTRY;
+    address public immutable OPERATOR_NET_OPTIN;
+    address public immutable OWNER;
+    uint48 public immutable EPOCH_DURATION;
+    uint48 public immutable SLASHING_WINDOW;
+    uint48 public immutable START_TIME;
+
+    uint48 private constant INSTANT_SLASHER_TYPE = 0;
+    uint48 private constant VETO_SLASHER_TYPE = 1;
+
+    uint256 public subnetworksCnt;
+    mapping(uint48 => uint256) public totalStakeCache;
+    mapping(uint48 => bool) public totalStakeCached;
+    mapping(uint48 => mapping(address => uint256)) public operatorStakeCache;
+    EnumerableMap.AddressToUintMap private operators;
+    EnumerableMap.AddressToUintMap private vaults;
+
     modifier updateStakeCache(uint48 epoch) {
-        if (totalStakeCache[epoch] == 0) {
+        if (!totalStakeCached[epoch]) {
             calcAndCacheStakes(epoch);
         }
         _;
@@ -75,12 +80,15 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
         address _network,
         address _operatorRegistry,
         address _vaultRegistry,
-        address _netVaultOptin,
         address _operatorNetOptin,
         address _owner,
         uint48 _epochDuration,
-        uint48 _minSlashingWindow
+        uint48 _slashingWindow
     ) SimpleKeyRegistry32() Ownable(_owner) {
+        if (_slashingWindow < _epochDuration) {
+            revert SlashingWindowTooShort();
+        }
+
         START_TIME = Time.timestamp();
         EPOCH_DURATION = _epochDuration;
         NETWORK = _network;
@@ -88,12 +96,9 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
         OPERATOR_REGISTRY = _operatorRegistry;
         VAULT_REGISTRY = _vaultRegistry;
         OPERATOR_NET_OPTIN = _operatorNetOptin;
-        NET_VAULT_OPTIN = _netVaultOptin;
-        SLASHING_WINDOW = _minSlashingWindow;
+        SLASHING_WINDOW = _slashingWindow;
 
-        if (SLASHING_WINDOW < EPOCH_DURATION) {
-            revert SlashingWindowTooShort();
-        }
+        subnetworksCnt = 1;
     }
 
     function getEpochStartTs(uint48 epoch) public view returns (uint48 timestamp) {
@@ -195,33 +200,44 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
         vaults.remove(vault);
     }
 
+    function setSubnetworksCnt(uint256 _subnetworksCnt) external onlyOwner {
+        if (subnetworksCnt >= _subnetworksCnt) {
+            revert InvalidSubnetworksCnt();
+        }
+
+        subnetworksCnt = _subnetworksCnt;
+    }
+
     function getOperatorStake(address operator, uint48 epoch) public view returns (uint256 stake) {
-        if (totalStakeCache[epoch] != 0) {
+        if (totalStakeCached[epoch]) {
             return operatorStakeCache[epoch][operator];
         }
 
         uint48 epochStartTs = getEpochStartTs(epoch);
 
-        for (uint256 i = 0; i < vaults.length(); ++i) {
+        for (uint256 i; i < vaults.length(); ++i) {
             (address vault, uint48 enabledTime, uint48 disabledTime) = vaults.atWithTimes(i);
 
             // just skip the vault if it was enabled after the target epoch or not enabled
-            if (!wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
+            if (!_wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
                 continue;
             }
 
-            stake += IBaseDelegator(IVault(vault).delegator()).stakeAt(NETWORK, operator, epochStartTs, new bytes(0));
+            for (uint96 j = 0; j < subnetworksCnt; ++j) {
+                stake += IBaseDelegator(IVault(vault).delegator()).stakeAt(
+                    NETWORK.subnetwork(j), operator, epochStartTs, new bytes(0)
+                );
+            }
         }
 
         return stake;
     }
 
     function getTotalStake(uint48 epoch) public view returns (uint256) {
-        if (totalStakeCache[epoch] != 0) {
+        if (totalStakeCached[epoch]) {
             return totalStakeCache[epoch];
-        } else {
-            return calcTotalStake(epoch);
         }
+        return _calcTotalStake(epoch);
     }
 
     function getValidatorSet(uint48 epoch) public view returns (ValidatorData[] memory validatorsData) {
@@ -230,11 +246,11 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
         validatorsData = new ValidatorData[](operators.length());
         uint256 valIdx = 0;
 
-        for (uint256 i = 0; i < operators.length(); i++) {
+        for (uint256 i; i < operators.length(); ++i) {
             (address operator, uint48 enabledTime, uint48 disabledTime) = operators.atWithTimes(i);
 
             // just skip operator if it was added after the target epoch or paused
-            if (!wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
+            if (!_wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
                 continue;
             }
 
@@ -261,6 +277,7 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
         // process payload
     }
 
+    // just for example, our devnets don't support slashing
     function slash(uint48 epoch, address operator, uint256 amount) public onlyOwner updateStakeCache(epoch) {
         uint48 epochStartTs = getEpochStartTs(epoch);
 
@@ -275,18 +292,21 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
         }
 
         // simple pro-rata slasher
-        for (uint256 i = 0; i < vaults.length(); ++i) {
+        for (uint256 i; i < vaults.length(); ++i) {
             (address vault, uint48 enabledTime, uint48 disabledTime) = operators.atWithTimes(i);
 
             // just skip the vault if it was enabled after the target epoch or not enabled
-            if (!wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
+            if (!_wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
                 continue;
             }
 
-            uint256 vaultStake =
-                IBaseDelegator(IVault(vault).delegator()).stakeAt(NETWORK, operator, epochStartTs, new bytes(0));
+            for (uint96 j = 0; j < subnetworksCnt; ++j) {
+                bytes32 subnetwork = NETWORK.subnetwork(j);
+                uint256 vaultStake =
+                    IBaseDelegator(IVault(vault).delegator()).stakeAt(subnetwork, operator, epochStartTs, new bytes(0));
 
-            slashVault(epochStartTs, vault, operator, amount * vaultStake / totalOperatorStake);
+                _slashVault(epochStartTs, vault, subnetwork, operator, amount * vaultStake / totalOperatorStake);
+            }
         }
     }
 
@@ -302,11 +322,11 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
             revert InvalidEpoch();
         }
 
-        for (uint256 i = 0; i < operators.length(); i++) {
+        for (uint256 i; i < operators.length(); ++i) {
             (address operator, uint48 enabledTime, uint48 disabledTime) = operators.atWithTimes(i);
 
             // just skip operator if it was added after the target epoch or paused
-            if (!wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
+            if (!_wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
                 continue;
             }
 
@@ -316,15 +336,11 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
             totalStake += operatorStake;
         }
 
-        if (totalStake == 0) {
-            // just keep 1 to avoid cache recalculations
-            totalStakeCache[epoch] = 1;
-        } else {
-            totalStakeCache[epoch] = totalStake;
-        }
+        totalStakeCached[epoch] = true;
+        totalStakeCache[epoch] = totalStake;
     }
 
-    function calcTotalStake(uint48 epoch) internal view returns (uint256 totalStake) {
+    function _calcTotalStake(uint48 epoch) private view returns (uint256 totalStake) {
         uint48 epochStartTs = getEpochStartTs(epoch);
 
         // for epoch older than SLASHING_WINDOW total stake can be invalidated (use cache)
@@ -336,11 +352,11 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
             revert InvalidEpoch();
         }
 
-        for (uint256 i = 0; i < operators.length(); i++) {
+        for (uint256 i; i < operators.length(); ++i) {
             (address operator, uint48 enabledTime, uint48 disabledTime) = operators.atWithTimes(i);
 
             // just skip operator if it was added after the target epoch or paused
-            if (!wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
+            if (!_wasActiveAt(enabledTime, disabledTime, epochStartTs)) {
                 continue;
             }
 
@@ -349,20 +365,23 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
         }
     }
 
-    function wasActiveAt(uint48 enabledTime, uint48 disabledTime, uint48 timestamp) internal pure returns (bool) {
-        if (enabledTime > timestamp || (disabledTime != 0 && disabledTime < timestamp)) {
-            return false;
-        }
-        return true;
+    function _wasActiveAt(uint48 enabledTime, uint48 disabledTime, uint48 timestamp) private pure returns (bool) {
+        return enabledTime != 0 && enabledTime <= timestamp && (disabledTime == 0 || disabledTime >= timestamp);
     }
 
-    function slashVault(uint48 timestamp, address vault, address operator, uint256 amount) internal {
+    function _slashVault(
+        uint48 timestamp,
+        address vault,
+        bytes32 subnetwork,
+        address operator,
+        uint256 amount
+    ) private {
         address slasher = IVault(vault).slasher();
         uint256 slasherType = IEntity(slasher).TYPE();
         if (slasherType == INSTANT_SLASHER_TYPE) {
-            ISlasher(slasher).slash(NETWORK, operator, amount, timestamp, new bytes(0));
+            ISlasher(slasher).slash(subnetwork, operator, amount, timestamp, new bytes(0));
         } else if (slasherType == VETO_SLASHER_TYPE) {
-            IVetoSlasher(slasher).requestSlash(NETWORK, operator, amount, timestamp, new bytes(0));
+            IVetoSlasher(slasher).requestSlash(subnetwork, operator, amount, timestamp, new bytes(0));
         } else {
             revert UnknownSlasherType();
         }
