@@ -60,38 +60,59 @@ const (
 	BLOCK_FINALIZED_PATH            = "/eth/v2/beacon/blocks/finalized"
 	BLOCK_ATTESTED_PATH             = "/eth/v2/beacon/blocks/head"
 	GET_VALIDATOR_SET_FUNCTION_NAME = "getValidatorSet"
-	GET_CURRENT_EPOCH_SELECTOR      = "b97dd9e2"
-	GET_VALIDATOR_SET_ABI           = `[{
-		"type": "function",
-		"name": "getValidatorSet",
-		"inputs": [
-			{
-				"name": "epoch",
-				"type": "uint48",
-				"internalType": "uint48"
-			}
-		],
-		"outputs": [
-			{
-				"name": "validatorsData",
-				"type": "tuple[]",
-				"internalType": "struct SimpleMiddleware.ValidatorData[]",
-				"components": [
-					{
-						"name": "stake",
-						"type": "uint256",
-						"internalType": "uint256"
-					},
-					{
-						"name": "consAddr",
-						"type": "bytes32",
-						"internalType": "bytes32"
-					}
-				]
-			}
-		],
-		"stateMutability": "view"
-	}]`
+	GET_EPOCH_AT_TS_FUNCTION_NAME   = "getEpochAtTs"
+	CONTRACT_ABI                    = `[
+		{
+			"type": "function",
+			"name": "getEpochAtTs",
+			"inputs": [
+				{
+					"name": "timestamp",
+					"type": "uint48",
+					"internalType": "uint48"
+				}
+			],
+			"outputs": [
+				{
+					"name": "epoch",
+					"type": "uint48",
+					"internalType": "uint48"
+				}
+			],
+			"stateMutability": "view"
+		},	
+		{
+			"type": "function",
+			"name": "getValidatorSet",
+			"inputs": [
+				{
+					"name": "epoch",
+					"type": "uint48",
+					"internalType": "uint48"
+				}
+			],
+			"outputs": [
+				{
+					"name": "validatorsData",
+					"type": "tuple[]",
+					"internalType": "struct SimpleMiddleware.ValidatorData[]",
+					"components": [
+						{
+							"name": "stake",
+							"type": "uint256",
+							"internalType": "uint256"
+						},
+						{
+							"name": "consAddr",
+							"type": "bytes32",
+							"internalType": "bytes32"
+						}
+					]
+				}
+			],
+			"stateMutability": "view"
+		}
+	]`
 )
 
 func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, error) {
@@ -160,28 +181,6 @@ func (k Keeper) getFinalizedBlockHash() (string, error) {
 	return block.Data.Message.Body.ExecutionPayload.BlockHash, nil
 }
 
-// Function to get the finality slot from the Beacon Chain API
-func (k Keeper) getCurrentEpoch(ctx context.Context, blockHash string) (*big.Int, error) {
-	client, err := ethclient.Dial(k.GetEthApiUrl())
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
-
-	contractAddress := common.HexToAddress(k.networkMiddlewareAddress)
-
-	query := ethereum.CallMsg{
-		To:   &contractAddress,
-		Data: common.Hex2Bytes(GET_CURRENT_EPOCH_SELECTOR),
-	}
-	result, err := client.CallContractAtHash(ctx, query, common.HexToHash(blockHash))
-	if err != nil {
-		return nil, err
-	}
-
-	return new(big.Int).SetBytes(result), nil
-}
-
 func (k Keeper) GetSymbioticValidatorSet(ctx context.Context, blockHash string) ([]Validator, error) {
 	client, err := ethclient.Dial(k.GetEthApiUrl())
 	if err != nil {
@@ -189,18 +188,14 @@ func (k Keeper) GetSymbioticValidatorSet(ctx context.Context, blockHash string) 
 	}
 	defer client.Close()
 
-	currentEpoch, err := k.getCurrentEpoch(ctx, blockHash)
-	if err != nil {
-		return nil, err
-	}
-
-	contractABI, err := abi.JSON(strings.NewReader(GET_VALIDATOR_SET_ABI))
+	contractABI, err := abi.JSON(strings.NewReader(CONTRACT_ABI))
 	if err != nil {
 		return nil, err
 	}
 
 	contractAddress := common.HexToAddress(k.networkMiddlewareAddress)
-	data, err := contractABI.Pack(GET_VALIDATOR_SET_FUNCTION_NAME, currentEpoch)
+
+	data, err := contractABI.Pack(GET_EPOCH_AT_TS_FUNCTION_NAME, big.NewInt(k.HeaderService.HeaderInfo(ctx).Time.Unix()))
 	if err != nil {
 		return nil, err
 	}
@@ -210,6 +205,22 @@ func (k Keeper) GetSymbioticValidatorSet(ctx context.Context, blockHash string) 
 		Data: data,
 	}
 	result, err := client.CallContractAtHash(ctx, query, common.HexToHash(blockHash))
+	if err != nil {
+		return nil, err
+	}
+
+	currentEpoch := new(big.Int).SetBytes(result)
+
+	data, err = contractABI.Pack(GET_VALIDATOR_SET_FUNCTION_NAME, currentEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	query = ethereum.CallMsg{
+		To:   &contractAddress,
+		Data: data,
+	}
+	result, err = client.CallContractAtHash(ctx, query, common.HexToHash(blockHash))
 	if err != nil {
 		return nil, err
 	}
