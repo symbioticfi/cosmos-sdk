@@ -1,4 +1,4 @@
-# Symbiotic cosmos-sdk example (stubchain)
+# Symbiotic cosmos-sdk example (stubchain) [!!!NON PRODUCTION!!!]
 
 ## Context
 Symbiotic is a shared security protocol that serves as a thin coordination layer, empowering network builders to control and adapt their own (re)staking implementation in a permissionless manner. It provides flexible (re)staking infrastructure for networks, operators, and stakers.
@@ -81,6 +81,9 @@ In the contracts, there is an admin role that can call important functions of th
 The Example network uses epochs to divide time into consecutive blocks of equal size. Each epoch has its own validator set, including keys and stakes, which the network captures at the start of every epoch.
 
 Note that this middleware implements the logic of VALSET and SLASH VERIFIER from the network abstraction section, as well as other functionalities.
+
+### Deployment
+SimpleMiddleware - [0x592c09083aa3e1edfb393c6dc0b59e70b378af36](https://holesky.etherscan.io/address/0x592c09083aa3e1edfb393c6dc0b59e70b378af36)
 
 ### Register operators and vaults
 

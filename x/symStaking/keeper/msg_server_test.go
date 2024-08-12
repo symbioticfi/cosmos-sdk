@@ -134,6 +134,11 @@ func (s *KeeperTestSuite) TestMsgCreateValidator() {
 					SecurityContact: "xyz@gmail.com",
 					Details:         "details",
 				},
+				Commission: types.CommissionRates{
+					Rate:          math.LegacyNewDecWithPrec(5, 1),
+					MaxRate:       math.LegacyNewDecWithPrec(5, 1),
+					MaxChangeRate: math.LegacyNewDec(0),
+				},
 				ValidatorAddress: s.valAddressToString(ValAddr),
 				Pubkey:           invalidPubkey,
 			},
@@ -147,6 +152,11 @@ func (s *KeeperTestSuite) TestMsgCreateValidator() {
 					Moniker:  "NewValidator",
 					Identity: "xyz",
 					Website:  "xyz.com",
+				},
+				Commission: types.CommissionRates{
+					Rate:          math.LegacyNewDecWithPrec(5, 1),
+					MaxRate:       math.LegacyNewDecWithPrec(5, 1),
+					MaxChangeRate: math.LegacyNewDec(0),
 				},
 				ValidatorAddress: s.valAddressToString(ValAddr),
 				Pubkey:           badPubKey,
