@@ -12,7 +12,7 @@ Our ecosystem allows anyone to build their ideal staking/restaking model using:
 
 In this repository, we introduce the [abstract representation](#network-abstraction) of any network that can be built on Symbiotic. We also provide an example network implementation with both an on-chain [middleware part](#simplemiddleware) and an off-chain [Cosmos-based part](#stubchain). 
 
-# Network Abstraction
+### Network Abstraction
 
 Before we dig into technicalities, let’s define the network model and its key parts. The way we define this model is maximally abstract to support any kind of network.
 
@@ -52,15 +52,15 @@ We don’t require networks to use a specific implementation of the `NetworkMidd
 
 The `NetworkMiddleware` consists of two main parts: `VALSET`and `SLASH VERIFIER`.
 
-## Network flow
+### Network flow
 
-### task→input task storage→worker→verifier
+#### task→input task storage→worker→verifier
 
 The network receives tasks from users and stores them in what we call input task storage. We do not specify exactly how tasks are stored; it can range from a complicated DA layer to a trivial immediate execution that does not require storing tasks (although the trivial storage is still considered storage).
 
 Then the tasks from the storage are delivered to the **WORKER**(we can simplify it here and call workers "operators"). In practically every network, the results of the operator’s work should be checked somehow. So, the results of the operator's work are delivered to the VERIFIER. Even in fraud-proof systems, we can outline what the **VERIFIER** might look like. To perform a fraud-proof check, it must be verifiable onchain. However, the way this data is delivered to the chain, where the fraud proof is checked, is itself a result delivery from the **WORKER** to the **VERIFIER**.
 
-### valset→worker, verifier
+#### valset→worker, verifier
 
 In general, in every network, information about VALSET must be delivered to the WORKER. Operators should understand when they are eligible to work in the Network.
 
@@ -68,7 +68,7 @@ In some networks, it is essential to deliver VALSET to the VERIFIER as well. The
 
 If core components of the network are not located on Ethereum, VALSET delivery can be made verifiable when a party signs a message with the actual VALSET. This message can then be used in fraud proofs for on-chain verification. If core components of the network, like WORKER and VERIFIER, are located on Ethereum, there are no trust assumptions on such delivery.
 
-### slasher → slash verifier → request slash
+#### slasher → slash verifier → request slash
 
 As mentioned, SLASHER is a mechanism for slashing in the network. Using information from modules like VERIFIER and WORKER, it determines when the operator must be slashed. However, the slashing is executed on the Ethereum chain, so the slashing information must be delivered to Ethereum. SLASH VERIFIER checks the sender of the slashing request, validates the calldata, and if all conditions are met, initiates the slashing process. Sometimes it requires data from the network’s VERIFIER, which can be on another chain. Slashing data can be delivered by a trusted party, aggregated key, directly in the chain, natively to the chain, etc. So the main question here is how exactly it is delivered to and verified in SLASH VERIFIER.
 
