@@ -1,4 +1,6 @@
-# Symbiotic cosmos-sdk example (stubchain) [!!!NON PRODUCTION!!!]
+## ⚠️ Disclaimer: This code is going through audits. It is NOT intended for a production use yet.
+
+# Symbiotic cosmos-sdk example (stubchain)
 
 ## Context
 Symbiotic is a shared security protocol that serves as a thin coordination layer, empowering network builders to control and adapt their own (re)staking implementation in a permissionless manner. It provides flexible (re)staking infrastructure for networks, operators, and stakers.
@@ -162,6 +164,5 @@ make build-sym
 ### Run
 See [`symapp`](symapp/README.md) directory.
 
- **!IMPORTANT**
- 
-When Symbiotic on-chain fetch errors occur, the application triggers a panic. Ensure automatic restarts are configured to maintain uptime.
+### Known issues
+ - When Symbiotic on-chain fetch errors occur, the application triggers a panic. Ensure automatic restarts are configured to maintain uptime.
