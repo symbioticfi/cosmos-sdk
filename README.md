@@ -160,4 +160,8 @@ make build-sym
 ```
 
 ### Run
-See [`symapp`](symapp/README.md) directory
+See [`symapp`](symapp/README.md) directory.
+
+ **!IMPORTANT**
+ 
+When Symbiotic on-chain fetch errors occur, the application triggers a panic. Ensure automatic restarts are configured to maintain uptime.
