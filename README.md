@@ -1,3 +1,6 @@
+# Symbiotic cosmos-sdk example (stubchain)
+
+## Context
 Symbiotic is a shared security protocol that serves as a thin coordination layer, empowering network builders to control and adapt their own (re)staking implementation in a permissionless manner. It provides flexible (re)staking infrastructure for networks, operators, and stakers.
 
 Our ecosystem allows anyone to build their ideal staking/restaking model using:
@@ -69,7 +72,7 @@ If core components of the network are not located on Ethereum, VALSET delivery c
 
 As mentioned, SLASHER is a mechanism for slashing in the network. Using information from modules like VERIFIER and WORKER, it determines when the operator must be slashed. However, the slashing is executed on the Ethereum chain, so the slashing information must be delivered to Ethereum. SLASH VERIFIER checks the sender of the slashing request, validates the calldata, and if all conditions are met, initiates the slashing process. Sometimes it requires data from the network’s VERIFIER, which can be on another chain. Slashing data can be delivered by a trusted party, aggregated key, directly in the chain, natively to the chain, etc. So the main question here is how exactly it is delivered to and verified in SLASH VERIFIER.
 
-# SimpleMiddleware
+## SimpleMiddleware
 
 [SimpleMiddleware contracts](./middleware/) serve as an example of how typical middleware can be implemented. Next, we describe the functionality of the contracts and possible improvements.
 
@@ -85,7 +88,7 @@ Any operator needs a stake to be eligible to work in the network. The source of 
 
 Since operators use different nodes with different keys, SimpleMiddleware can register and deregister keys of the operator. There are `registerOperator` and `updateOperatorKey` methods that allow this.
 
-## Get Validator Set
+### Get Validator Set
 
 To get the validator set, there is a `getValidatorSet` method that iterates over all registered operators in the middleware and calculates their stakes at the given epoch. This function can be called to get the actual validator set for the current epoch or to identify validators elected in previous epochs. Note that this method can be implemented in different ways, including:
 
@@ -97,7 +100,7 @@ To get the validator set, there is a `getValidatorSet` method that iterates over
 
 As mentioned, this method is just an example of how a validator set can be implemented.
 
-## Slashing
+### Slashing
 
 If an operator misbehaves, it must be slashed. To do this in the middleware, use the `slash(epoch, operator, amount)` method. This method iterates over all the operator’s vaults and slashes the operator proportionally. The epoch argument is related to the network’s epoch because an operator can be slashed not immediately but after some time.
 
@@ -110,9 +113,9 @@ Slashing can be implemented in other ways, including:
 
 This method is essentially the SLASH VERIFIER from the network abstraction section but with basic verification.
 
-# StubChain
+## Stubchain
 
-[Symbiotic StubChain](./symapp/) serves as an example network that can be built on the Symbiotic system. It is created using the Cosmos SDK with several differences.
+[Symbiotic stubchain](./symapp/) serves as an example network that can be built on the Symbiotic system. It is created using the Cosmos SDK with several differences.
 
 ![Stakes delivery](./img/network-symbiotic.drawio.png)
 
@@ -142,16 +145,16 @@ There are other minor differences including:
     3. ETH RPC URL
     4. Debug flag (for unfinalized canonical block)
 
-## Modules
+### Modules
 - /x/symStaking <- x/staking
 - /x/symSlash <- x/slashing
 - /x/symGov <- x/gov
 - /x/symGenutil <- x/genutil
 
-## Build
+### Build
 ```bash
 make build-sym
 ```
 
-## Run
+### Run
 See [`symapp`](symapp/README.md) directory
