@@ -1,9 +1,7 @@
 package keeper
 
 import (
-	"math/rand"
 	"os"
-	"strings"
 	"time"
 
 	gogotypes "github.com/cosmos/gogoproto/types"
@@ -43,17 +41,15 @@ func HistoricalInfoCodec(cdc codec.BinaryCodec) collcodec.ValueCodec[types.Histo
 type Keeper struct {
 	appmodule.Environment
 
-	cdc                   codec.BinaryCodec
-	authKeeper            types.AccountKeeper
-	bankKeeper            types.BankKeeper
-	hooks                 types.StakingHooks
-	authority             string
-	validatorAddressCodec addresscodec.Codec
-	consensusAddressCodec addresscodec.Codec
-	cometInfoService      comet.Service
-
-	beaconApiUrls            []string
-	ethApiUrls               []string
+	cdc                      codec.BinaryCodec
+	authKeeper               types.AccountKeeper
+	bankKeeper               types.BankKeeper
+	hooks                    types.StakingHooks
+	authority                string
+	validatorAddressCodec    addresscodec.Codec
+	consensusAddressCodec    addresscodec.Codec
+	cometInfoService         comet.Service
+	apiUrls                  *types.ApiUrls
 	networkMiddlewareAddress string
 	debug                    bool
 
@@ -102,24 +98,6 @@ func NewKeeper(
 		panic("validator and/or consensus address codec are nil")
 	}
 
-	// USE ONLY YOUR LOCAL BEACON CLIENT FOR SAFETY!!!
-	beaconApiUrls := strings.Split(os.Getenv("BEACON_API_URLS"), ",")
-	if len(beaconApiUrls) == 1 && beaconApiUrls[0] == "" {
-		beaconApiUrls[0] = "https://eth-holesky-beacon.public.blastapi.io"
-		beaconApiUrls = append(beaconApiUrls, "http://unstable.holesky.beacon-api.nimbus.team")
-		beaconApiUrls = append(beaconApiUrls, "https://ethereum-holesky-beacon-api.publicnode.com")
-	}
-
-	ethApiUrls := strings.Split(os.Getenv("ETH_API_URLS"), ",")
-
-	if len(ethApiUrls) == 1 && ethApiUrls[0] == "" {
-		ethApiUrls[0] = "https://rpc.ankr.com/eth_holesky"
-		ethApiUrls = append(ethApiUrls, "https://ethereum-holesky.blockpi.network/v1/rpc/public")
-		ethApiUrls = append(ethApiUrls, "https://eth-holesky.public.blastapi.io")
-		ethApiUrls = append(ethApiUrls, "https://ethereum-holesky.gateway.tatum.io")
-		ethApiUrls = append(ethApiUrls, "https://holesky.gateway.tenderly.co")
-	}
-
 	networkMiddlewareAddress := os.Getenv("MIDDLEWARE_ADDRESS")
 
 	debug := os.Getenv("DEBUG") != ""
@@ -134,8 +112,7 @@ func NewKeeper(
 		validatorAddressCodec:    validatorAddressCodec,
 		consensusAddressCodec:    consensusAddressCodec,
 		cometInfoService:         cometInfoService,
-		beaconApiUrls:            beaconApiUrls,
-		ethApiUrls:               ethApiUrls,
+		apiUrls:                  types.NewApiUrls(),
 		networkMiddlewareAddress: networkMiddlewareAddress,
 		debug:                    debug,
 		LastTotalPower:           collections.NewItem(sb, types.LastTotalPowerKey, "last_total_power", sdk.IntValue),
@@ -208,12 +185,4 @@ func (k Keeper) ValidatorAddressCodec() addresscodec.Codec {
 // ConsensusAddressCodec returns the app consensus address codec.
 func (k Keeper) ConsensusAddressCodec() addresscodec.Codec {
 	return k.consensusAddressCodec
-}
-
-func (k Keeper) GetEthApiUrl() string {
-	return k.ethApiUrls[rand.Intn(len(k.ethApiUrls))]
-}
-
-func (k Keeper) GetBeaconApiUrl() string {
-	return k.beaconApiUrls[rand.Intn(len(k.beaconApiUrls))]
 }

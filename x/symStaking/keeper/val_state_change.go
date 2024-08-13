@@ -24,13 +24,16 @@ func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.Validato
 	// Calculate validator set changes.
 
 	var err error
-	for i := 0; i < 5; i++ { // retry 5 times with different random providers
+	for i := 0; i < 5; i++ { // retry 5 times with different providers
+		beaconUrl := k.apiUrls.GetBeaconApiUrl()
+		ethApiUrl := k.apiUrls.GetEthApiUrl()
+
 		_, err = k.SymbioticUpdateValidatorsPower(ctx)
 		if err == nil {
 			break
 		}
 
-		k.Logger.Warn("Update validator power error; Trying ...", "error", err)
+		k.Logger.Warn("Update validator power error; Trying ...", "error", err, "beacon", beaconUrl, "eth", ethApiUrl)
 
 		time.Sleep(time.Millisecond * 200)
 	}

@@ -126,11 +126,14 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, err
 
 	blockHash, err := k.getFinalizedBlockHash()
 	if err != nil {
+		k.apiUrls.RotateBeaconUrl()
+		k.Logger.Info("kek", "updated", k.apiUrls.GetBeaconApiUrl())
 		return "", err
 	}
 
 	validators, err := k.GetSymbioticValidatorSet(ctx, blockHash)
 	if err != nil {
+		k.apiUrls.RotateEthUrl()
 		return "", err
 	}
 
@@ -151,7 +154,7 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, err
 
 // Function to get the finality slot from the Beacon Chain API
 func (k Keeper) getFinalizedBlockHash() (string, error) {
-	url := k.GetBeaconApiUrl()
+	url := k.apiUrls.GetBeaconApiUrl()
 	if k.debug {
 		url += BLOCK_ATTESTED_PATH
 	} else {
@@ -182,7 +185,7 @@ func (k Keeper) getFinalizedBlockHash() (string, error) {
 }
 
 func (k Keeper) GetSymbioticValidatorSet(ctx context.Context, blockHash string) ([]Validator, error) {
-	client, err := ethclient.Dial(k.GetEthApiUrl())
+	client, err := ethclient.Dial(k.apiUrls.GetEthApiUrl())
 	if err != nil {
 		return nil, err
 	}
