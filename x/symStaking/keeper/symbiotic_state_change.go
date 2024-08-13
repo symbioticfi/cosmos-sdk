@@ -127,7 +127,6 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, err
 	blockHash, err := k.getFinalizedBlockHash()
 	if err != nil {
 		k.apiUrls.RotateBeaconUrl()
-		k.Logger.Info("kek", "updated", k.apiUrls.GetBeaconApiUrl())
 		return "", err
 	}
 
