@@ -1,4 +1,4 @@
-## ⚠️ Disclaimer: This code is going through audits. It is NOT intended for a production use yet.
+## ⚠️ Disclaimer: This code is NOT intended for a production use.
 
 # Symbiotic cosmos-sdk example (stubchain)
 
