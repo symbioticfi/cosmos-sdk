@@ -2,20 +2,20 @@ package keeper
 
 import (
 	"context"
+	"cosmossdk.io/math"
+	stakingtypes "cosmossdk.io/x/symStaking/types"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"math/big"
-	"net/http"
-	"strings"
-
-	"cosmossdk.io/math"
-	stakingtypes "cosmossdk.io/x/symStaking/types"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"io/ioutil"
+	"math/big"
+	"net/http"
+	"strconv"
+	"strings"
 )
 
 // Struct to unmarshal the response from the Beacon Chain API
@@ -56,9 +56,11 @@ type Validator struct {
 }
 
 const (
+	BEACON_GENESIS_TIMESTAMP        = 1695902400
 	SYMBIOTIC_SYNC_PERIOD           = 10
-	BLOCK_FINALIZED_PATH            = "/eth/v2/beacon/blocks/finalized"
-	BLOCK_ATTESTED_PATH             = "/eth/v2/beacon/blocks/head"
+	SLOTS_IN_EPOCH                  = 32
+	SLOT_DURATION                   = 12
+	BLOCK_PATH                      = "/eth/v2/beacon/blocks/"
 	GET_VALIDATOR_SET_FUNCTION_NAME = "getValidatorSet"
 	GET_EPOCH_AT_TS_FUNCTION_NAME   = "getEpochAtTs"
 	CONTRACT_ABI                    = `[
@@ -124,13 +126,13 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, err
 		return "", nil
 	}
 
-	blockHash, err := k.getFinalizedBlockHash()
+	blockHash, err := k.getFinalizedBlockHash(ctx)
 	if err != nil {
 		k.apiUrls.RotateBeaconUrl()
 		return "", err
 	}
 
-	validators, err := k.GetSymbioticValidatorSet(ctx, blockHash)
+	validators, err := k.getSymbioticValidatorSet(ctx, blockHash)
 	if err != nil {
 		k.apiUrls.RotateEthUrl()
 		return "", err
@@ -151,39 +153,28 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, err
 	return blockHash, nil
 }
 
-// Function to get the finality slot from the Beacon Chain API
-func (k Keeper) getFinalizedBlockHash() (string, error) {
-	url := k.apiUrls.GetBeaconApiUrl()
-	if k.debug {
-		url += BLOCK_ATTESTED_PATH
-	} else {
-		url += BLOCK_FINALIZED_PATH
+func (k Keeper) getFinalizedBlockHash(ctx context.Context) (string, error) {
+	slot := k.getSlot(ctx)
+	block, err := k.parseBlock(slot)
+	for errors.Is(err, stakingtypes.ErrSymbioticNotFound) { // some slots on api may be omitted
+		for i := 1; i < SLOTS_IN_EPOCH; i++ {
+			block, err = k.parseBlock(slot + i)
+			if err == nil {
+				break
+			}
+			if !errors.Is(err, stakingtypes.ErrSymbioticNotFound) {
+				return "", err
+			}
+		}
 	}
-	resp, err := http.Get(url)
 	if err != nil {
-		return "", fmt.Errorf("error making HTTP request: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("error reading response body: %v", err)
-	}
-
-	var block Block
-	err = json.Unmarshal(body, &block)
-	if err != nil {
-		return "", fmt.Errorf("error unmarshaling JSON: %v", err)
-
+		return "", err
 	}
 
 	return block.Data.Message.Body.ExecutionPayload.BlockHash, nil
 }
 
-func (k Keeper) GetSymbioticValidatorSet(ctx context.Context, blockHash string) ([]Validator, error) {
+func (k Keeper) getSymbioticValidatorSet(ctx context.Context, blockHash string) ([]Validator, error) {
 	client, err := ethclient.Dial(k.apiUrls.GetEthApiUrl())
 	if err != nil {
 		return nil, err
@@ -234,4 +225,42 @@ func (k Keeper) GetSymbioticValidatorSet(ctx context.Context, blockHash string) 
 	}
 
 	return validators, nil
+}
+
+func (k Keeper) getSlot(ctx context.Context) int {
+	slot := (k.HeaderService.HeaderInfo(ctx).Time.Unix() - BEACON_GENESIS_TIMESTAMP) / SLOT_DURATION // get beacon slot
+	slot = slot / SLOTS_IN_EPOCH * SLOTS_IN_EPOCH                                                    // first slot of epoch
+	slot -= 2 * SLOTS_IN_EPOCH                                                                       // get finalized slot
+	return int(slot)
+}
+
+func (k Keeper) parseBlock(slot int) (Block, error) {
+	url := k.apiUrls.GetBeaconApiUrl() + BLOCK_PATH + strconv.Itoa(slot)
+
+	var block Block
+	resp, err := http.Get(url)
+	if err != nil {
+		return block, fmt.Errorf("error making HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return block, stakingtypes.ErrSymbioticNotFound
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return block, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return block, fmt.Errorf("error reading response body: %v", err)
+	}
+
+	err = json.Unmarshal(body, &block)
+	if err != nil {
+		return block, fmt.Errorf("error unmarshaling JSON: %v", err)
+	}
+
+	return block, nil
 }

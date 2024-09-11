@@ -51,7 +51,6 @@ type Keeper struct {
 	cometInfoService         comet.Service
 	apiUrls                  *types.ApiUrls
 	networkMiddlewareAddress string
-	debug                    bool
 
 	Schema collections.Schema
 
@@ -100,8 +99,6 @@ func NewKeeper(
 
 	networkMiddlewareAddress := os.Getenv("MIDDLEWARE_ADDRESS")
 
-	debug := os.Getenv("DEBUG") != ""
-
 	k := &Keeper{
 		Environment:              env,
 		cdc:                      cdc,
@@ -114,7 +111,6 @@ func NewKeeper(
 		cometInfoService:         cometInfoService,
 		apiUrls:                  types.NewApiUrls(),
 		networkMiddlewareAddress: networkMiddlewareAddress,
-		debug:                    debug,
 		LastTotalPower:           collections.NewItem(sb, types.LastTotalPowerKey, "last_total_power", sdk.IntValue),
 		HistoricalInfo:           collections.NewMap(sb, types.HistoricalInfoKey, "historical_info", collections.Uint64Key, HistoricalInfoCodec(cdc)),
 		UnbondingID:              collections.NewSequence(sb, types.UnbondingIDKey, "unbonding_id"),
