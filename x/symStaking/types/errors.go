@@ -52,4 +52,5 @@ var (
 	ErrConsensusPubKeyLenInvalid       = errors.Register(ModuleName, 47, "consensus pubkey len is invalid")
 
 	ErrSymbioticValUpdate = errors.Register(ModuleName, 48, "symbiotic validator update error")
+	ErrSymbioticNotFound  = errors.Register(ModuleName, 49, "symbiotic not found")
 )
