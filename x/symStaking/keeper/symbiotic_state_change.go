@@ -122,6 +122,8 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, err
 		panic("middleware address is not set")
 	}
 
+	k.Logger.Error("timestamp", "timestamp", k.HeaderService.HeaderInfo(ctx).Height, "height", k.HeaderService.HeaderInfo(ctx).Height)
+
 	if k.HeaderService.HeaderInfo(ctx).Height%SYMBIOTIC_SYNC_PERIOD != 0 {
 		return "", nil
 	}
