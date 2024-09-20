@@ -90,7 +90,7 @@ func ValidateAccountInGenesis(
 // invokes the provided deliverTxfn with the decoded Tx. It returns the result
 // of the staking module's ApplyAndReturnValidatorSetUpdates.
 func DeliverGenTxs(
-	ctx context.Context, genTxs []json.RawMessage,
+	ctx context.Context, initBlockHash string, genTxs []json.RawMessage,
 	stakingKeeper types.StakingKeeper, deliverTx genesis.TxHandler,
 	txEncodingConfig client.TxEncodingConfig,
 ) ([]module.ValidatorUpdate, error) {
@@ -111,5 +111,9 @@ func DeliverGenTxs(
 		}
 	}
 
-	return stakingKeeper.BlockValidatorUpdates(ctx)
+	if err := stakingKeeper.SymbioticUpdateValidatorsPower(ctx, initBlockHash); err != nil {
+		return nil, fmt.Errorf("failed to update symbiotic validators power: %w", err)
+	}
+
+	return stakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
 }

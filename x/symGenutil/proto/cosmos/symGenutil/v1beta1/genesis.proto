@@ -15,4 +15,6 @@ message GenesisState {
     (amino.field_name)     = "gentxs",
     (amino.dont_omitempty) = true
   ];
+
+  string init_block_hash = 2;
 }

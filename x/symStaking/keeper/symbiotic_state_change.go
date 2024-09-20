@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"io/ioutil"
+	"log"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -117,45 +118,46 @@ const (
 	]`
 )
 
-func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, error) {
+func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context, blockHash string) error {
 	if k.networkMiddlewareAddress == "" {
 		panic("middleware address is not set")
 	}
 
+	log.Println(blockHash)
+
 	k.Logger.Error("timestamp", "timestamp", k.HeaderService.HeaderInfo(ctx).Height, "height", k.HeaderService.HeaderInfo(ctx).Height)
 
 	if k.HeaderService.HeaderInfo(ctx).Height%SYMBIOTIC_SYNC_PERIOD != 0 {
-		return "", nil
-	}
-
-	blockHash, err := k.getFinalizedBlockHash(ctx)
-	if err != nil {
-		k.apiUrls.RotateBeaconUrl()
-		return "", err
+		return nil
 	}
 
 	validators, err := k.getSymbioticValidatorSet(ctx, blockHash)
 	if err != nil {
 		k.apiUrls.RotateEthUrl()
-		return "", err
+		return err
 	}
 
+	log.Println(len(validators))
+
 	for _, v := range validators {
+		log.Println(common.Bytes2Hex(v.ConsAddr[:20]))
 		val, err := k.GetValidatorByConsAddr(ctx, v.ConsAddr[:20])
 		if err != nil {
 			if errors.Is(err, stakingtypes.ErrNoValidatorFound) {
 				continue
 			}
-			return "", err
+			return err
 		}
+
+		log.Println("setting tokens")
 
 		k.SetValidatorTokens(ctx, val, math.NewIntFromBigInt(v.Stake))
 	}
 
-	return blockHash, nil
+	return nil
 }
 
-func (k Keeper) getFinalizedBlockHash(ctx context.Context) (string, error) {
+func (k Keeper) GetFinalizedBlockHash(ctx context.Context) (string, error) {
 	slot := k.getSlot(ctx)
 	block, err := k.parseBlock(slot)
 	for errors.Is(err, stakingtypes.ErrSymbioticNotFound) { // some slots on api may be omitted

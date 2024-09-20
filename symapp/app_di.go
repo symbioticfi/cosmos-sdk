@@ -197,6 +197,7 @@ func NewSymApp(
 		panic(err)
 	}
 
+	logger.Error("LOX")
 	// Below we could construct and set an application specific mempool and
 	// ABCI 1.0 PrepareProposal and ProcessProposal handlers. These defaults are
 	// already set in the SDK's BaseApp, this shows an example of how to override
@@ -217,12 +218,6 @@ func NewSymApp(
 	//
 	// Example:
 	//
-	// prepareOpt = func(app *baseapp.BaseApp) {
-	// 	abciPropHandler := baseapp.NewDefaultProposalHandler(nonceMempool, app)
-	// 	app.SetPrepareProposal(abciPropHandler.PrepareProposalHandler())
-	// }
-	// baseAppOptions = append(baseAppOptions, prepareOpt)
-
 	// create and set dummy vote extension handler
 	voteExtOp := func(bApp *baseapp.BaseApp) {
 		voteExtHandler := NewVoteExtensionHandler()
@@ -231,6 +226,10 @@ func NewSymApp(
 	baseAppOptions = append(baseAppOptions, voteExtOp, baseapp.SetOptimisticExecution())
 
 	app.App = appBuilder.Build(db, traceStore, baseAppOptions...)
+	logger.Error("set preblockers")
+	abciPropHandler := stakingkeeper.NewProposalHandler(logger, app.StakingKeeper)
+	app.App.BaseApp.SetPrepareProposal(abciPropHandler.PrepareProposal())
+	app.App.BaseApp.SetPreBlocker(abciPropHandler.PreBlocker())
 
 	if indexerOpts := appOpts.Get("indexer"); indexerOpts != nil {
 		// if we have indexer options in app.toml, then enable the built-in indexer framework
