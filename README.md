@@ -150,6 +150,11 @@ There are other minor differences including:
     3. ETH RPC URL
     4. Debug flag (for unfinalized canonical block)
 
+6. **Modify Genesis**
+    
+    1. Set *SymGenutil.init_block_hash* param - the block hash from fetch validator set
+    2. Enable vote extensions *consensus.params.feature.vote_extensions_enable_height*, set to 1 for example
+
 ### Modules
 - /x/symStaking <- x/staking
 - /x/symSlash <- x/slashing
