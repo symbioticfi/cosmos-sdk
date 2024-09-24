@@ -3,6 +3,7 @@
 package symapp
 
 import (
+	"cosmossdk.io/x/symStaking/abci"
 	_ "embed"
 	"fmt"
 	"io"
@@ -197,7 +198,6 @@ func NewSymApp(
 		panic(err)
 	}
 
-	logger.Error("LOX")
 	// Below we could construct and set an application specific mempool and
 	// ABCI 1.0 PrepareProposal and ProcessProposal handlers. These defaults are
 	// already set in the SDK's BaseApp, this shows an example of how to override
@@ -219,17 +219,16 @@ func NewSymApp(
 	// Example:
 	//
 	// create and set dummy vote extension handler
-	voteExtOp := func(bApp *baseapp.BaseApp) {
-		voteExtHandler := NewVoteExtensionHandler()
-		voteExtHandler.SetHandlers(bApp)
-	}
-	baseAppOptions = append(baseAppOptions, voteExtOp, baseapp.SetOptimisticExecution())
+	abciPropHandler := abci.NewProposalHandler(logger, app.StakingKeeper)
+	voteExtensionHandler := abci.NewVoteExtensionHandler()
+	baseAppOptions = append(baseAppOptions, func(ba *baseapp.BaseApp) {
+		ba.SetExtendVoteHandler(voteExtensionHandler.ExtendVote())
+		ba.SetVerifyVoteExtensionHandler(voteExtensionHandler.VerifyVoteExtension())
+		ba.SetPrepareProposal(abciPropHandler.PrepareProposal())
+		ba.SetPreBlocker(abciPropHandler.PreBlocker())
+	})
 
 	app.App = appBuilder.Build(db, traceStore, baseAppOptions...)
-	logger.Error("set preblockers")
-	abciPropHandler := stakingkeeper.NewProposalHandler(logger, app.StakingKeeper)
-	app.App.BaseApp.SetPrepareProposal(abciPropHandler.PrepareProposal())
-	app.App.BaseApp.SetPreBlocker(abciPropHandler.PreBlocker())
 
 	if indexerOpts := appOpts.Get("indexer"); indexerOpts != nil {
 		// if we have indexer options in app.toml, then enable the built-in indexer framework

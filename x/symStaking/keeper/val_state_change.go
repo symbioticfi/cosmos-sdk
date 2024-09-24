@@ -20,11 +20,6 @@ import (
 // Called in each EndBlock
 func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.ValidatorUpdate, error) {
 	// Calculate validator set changes.
-
-	//if err != nil {
-	//	panic(errors.Join(types.ErrSymbioticValUpdate, err))
-	//}
-
 	//
 	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
 	// UnbondAllMatureValidatorQueue.
