@@ -17,7 +17,7 @@ func InitGenesis(
 	txEncodingConfig client.TxEncodingConfig,
 ) (validatorUpdates []module.ValidatorUpdate, err error) {
 	if len(genesisState.GenTxs) > 0 {
-		moduleValidatorUpdates, err := DeliverGenTxs(ctx, genesisState.GenTxs, stakingKeeper, deliverTx, txEncodingConfig)
+		moduleValidatorUpdates, err := DeliverGenTxs(ctx, genesisState.InitBlockHash, genesisState.GenTxs, stakingKeeper, deliverTx, txEncodingConfig)
 		if err != nil {
 			return nil, err
 		}

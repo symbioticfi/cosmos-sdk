@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"io/ioutil"
 	"math/big"
@@ -57,23 +58,15 @@ type Validator struct {
 
 const (
 	BEACON_GENESIS_TIMESTAMP        = 1695902400
-	SYMBIOTIC_SYNC_PERIOD           = 10
 	SLOTS_IN_EPOCH                  = 32
 	SLOT_DURATION                   = 12
 	BLOCK_PATH                      = "/eth/v2/beacon/blocks/"
 	GET_VALIDATOR_SET_FUNCTION_NAME = "getValidatorSet"
-	GET_EPOCH_AT_TS_FUNCTION_NAME   = "getEpochAtTs"
+	GET_CURRENT_EPOCH_FUNCTION_NAME = "getCurrentEpoch"
 	CONTRACT_ABI                    = `[
 		{
 			"type": "function",
-			"name": "getEpochAtTs",
-			"inputs": [
-				{
-					"name": "timestamp",
-					"type": "uint48",
-					"internalType": "uint48"
-				}
-			],
+			"name": "getCurrentEpoch",
 			"outputs": [
 				{
 					"name": "epoch",
@@ -117,27 +110,15 @@ const (
 	]`
 )
 
-func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, error) {
+func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context, blockHash string) error {
 	if k.networkMiddlewareAddress == "" {
 		panic("middleware address is not set")
-	}
-
-	k.Logger.Error("timestamp", "timestamp", k.HeaderService.HeaderInfo(ctx).Height, "height", k.HeaderService.HeaderInfo(ctx).Height)
-
-	if k.HeaderService.HeaderInfo(ctx).Height%SYMBIOTIC_SYNC_PERIOD != 0 {
-		return "", nil
-	}
-
-	blockHash, err := k.getFinalizedBlockHash(ctx)
-	if err != nil {
-		k.apiUrls.RotateBeaconUrl()
-		return "", err
 	}
 
 	validators, err := k.getSymbioticValidatorSet(ctx, blockHash)
 	if err != nil {
 		k.apiUrls.RotateEthUrl()
-		return "", err
+		return err
 	}
 
 	for _, v := range validators {
@@ -146,16 +127,16 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) (string, err
 			if errors.Is(err, stakingtypes.ErrNoValidatorFound) {
 				continue
 			}
-			return "", err
+			return err
 		}
 
 		k.SetValidatorTokens(ctx, val, math.NewIntFromBigInt(v.Stake))
 	}
 
-	return blockHash, nil
+	return nil
 }
 
-func (k Keeper) getFinalizedBlockHash(ctx context.Context) (string, error) {
+func (k Keeper) GetFinalizedBlockHash(ctx context.Context) (string, error) {
 	slot := k.getSlot(ctx)
 	block, err := k.parseBlock(slot)
 	for errors.Is(err, stakingtypes.ErrSymbioticNotFound) { // some slots on api may be omitted
@@ -176,6 +157,20 @@ func (k Keeper) getFinalizedBlockHash(ctx context.Context) (string, error) {
 	return block.Data.Message.Body.ExecutionPayload.BlockHash, nil
 }
 
+func (k Keeper) GetBlockByHash(ctx context.Context, blockHash string) (*types.Block, error) {
+	client, err := ethclient.Dial(k.apiUrls.GetEthApiUrl())
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	return client.BlockByHash(ctx, common.HexToHash(blockHash))
+}
+
+func (k Keeper) GetMinBlockTimestamp(ctx context.Context) uint64 {
+	return uint64(k.getSlot(ctx))*12 + BEACON_GENESIS_TIMESTAMP
+}
+
 func (k Keeper) getSymbioticValidatorSet(ctx context.Context, blockHash string) ([]Validator, error) {
 	client, err := ethclient.Dial(k.apiUrls.GetEthApiUrl())
 	if err != nil {
@@ -190,7 +185,7 @@ func (k Keeper) getSymbioticValidatorSet(ctx context.Context, blockHash string) 
 
 	contractAddress := common.HexToAddress(k.networkMiddlewareAddress)
 
-	data, err := contractABI.Pack(GET_EPOCH_AT_TS_FUNCTION_NAME, big.NewInt(k.HeaderService.HeaderInfo(ctx).Time.Unix()))
+	data, err := contractABI.Pack(GET_CURRENT_EPOCH_FUNCTION_NAME)
 	if err != nil {
 		return nil, err
 	}
