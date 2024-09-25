@@ -6,16 +6,8 @@ import (
 	"cosmossdk.io/x/symStaking/types"
 	"encoding/json"
 	"errors"
-	"fmt"
 	abci "github.com/cometbft/cometbft/abci/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"time"
-)
-
-const (
-	SYMBIOTIC_SYNC_PERIOD = 10
-	SLEEP_ON_RETRY        = 200
-	RETRIES               = 5
 )
 
 type ProposalHandler struct {
@@ -33,17 +25,7 @@ func NewProposalHandler(logger log.Logger, keeper *keeper2.Keeper) *ProposalHand
 
 func (h *ProposalHandler) PrepareProposal() sdk.PrepareProposalHandler {
 	return func(ctx sdk.Context, req *abci.PrepareProposalRequest) (*abci.PrepareProposalResponse, error) {
-		var err error
-		var resp *abci.PrepareProposalResponse
-
-		for i := 0; i < RETRIES; i++ {
-			resp, err = h.internalPrepareProposal(ctx, req)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Millisecond * SLEEP_ON_RETRY)
-		}
-
+		resp, err := h.internalPrepareProposal(ctx, req)
 		if err != nil {
 			panic(errors.Join(types.ErrSymbioticValUpdate, err))
 		}
@@ -53,18 +35,8 @@ func (h *ProposalHandler) PrepareProposal() sdk.PrepareProposalHandler {
 }
 
 func (h *ProposalHandler) PreBlocker() sdk.PreBlocker {
-	return func(context sdk.Context, req *abci.FinalizeBlockRequest) error {
-		var err error
-
-		for i := 0; i < RETRIES; i++ {
-			err = h.internalPreBlocker(context, req)
-			if err == nil {
-				break
-			}
-			time.Sleep(time.Millisecond * SLEEP_ON_RETRY)
-		}
-
-		if err != nil {
+	return func(ctx sdk.Context, req *abci.FinalizeBlockRequest) error {
+		if err := h.internalPreBlocker(ctx, req); err != nil {
 			panic(errors.Join(types.ErrSymbioticValUpdate, err))
 		}
 
@@ -75,7 +47,7 @@ func (h *ProposalHandler) PreBlocker() sdk.PreBlocker {
 func (h *ProposalHandler) internalPrepareProposal(ctx sdk.Context, req *abci.PrepareProposalRequest) (*abci.PrepareProposalResponse, error) {
 	proposalTxs := req.Txs
 
-	if req.Height%SYMBIOTIC_SYNC_PERIOD != 0 {
+	if req.Height%keeper2.SYMBIOTIC_SYNC_PERIOD != 0 {
 		return &abci.PrepareProposalResponse{
 			Txs: proposalTxs,
 		}, nil
@@ -103,7 +75,7 @@ func (h *ProposalHandler) internalPrepareProposal(ctx sdk.Context, req *abci.Pre
 }
 
 func (h *ProposalHandler) internalPreBlocker(context sdk.Context, req *abci.FinalizeBlockRequest) error {
-	if req.Height%SYMBIOTIC_SYNC_PERIOD != 0 || len(req.Txs) == 0 {
+	if req.Height%keeper2.SYMBIOTIC_SYNC_PERIOD != 0 || len(req.Txs) == 0 {
 		return nil
 	}
 
@@ -118,12 +90,11 @@ func (h *ProposalHandler) internalPreBlocker(context sdk.Context, req *abci.Fina
 	}
 
 	if block.Time() < h.prevBlockTime || int64(block.Time()) >= context.HeaderInfo().Time.Unix() || block.Time() < h.keeper.GetMinBlockTimestamp(context) {
-		return fmt.Errorf("symbiotic invalid proposed block")
+		h.keeper.CacheBlockHash(keeper2.INVALID_BLOCKHASH, req.Height)
+		return nil
 	}
 
-	if err := h.keeper.SymbioticUpdateValidatorsPower(context, blockHash); err != nil {
-		return err
-	}
+	h.keeper.CacheBlockHash(blockHash, req.Height)
 
 	h.prevBlockTime = block.Time()
 

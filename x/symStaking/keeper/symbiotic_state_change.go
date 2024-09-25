@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Struct to unmarshal the response from the Beacon Chain API
@@ -56,10 +57,19 @@ type Validator struct {
 	ConsAddr [32]byte
 }
 
+type CachedBlockHash struct {
+	BlockHash string
+	Height    int64
+}
+
 const (
+	SYMBIOTIC_SYNC_PERIOD           = 10
+	SLEEP_ON_RETRY                  = 200
+	RETRIES                         = 5
 	BEACON_GENESIS_TIMESTAMP        = 1695902400
 	SLOTS_IN_EPOCH                  = 32
 	SLOT_DURATION                   = 12
+	INVALID_BLOCKHASH               = "invalid"
 	BLOCK_PATH                      = "/eth/v2/beacon/blocks/"
 	GET_VALIDATOR_SET_FUNCTION_NAME = "getValidatorSet"
 	GET_CURRENT_EPOCH_FUNCTION_NAME = "getCurrentEpoch"
@@ -110,15 +120,41 @@ const (
 	]`
 )
 
-func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context, blockHash string) error {
+func (k *Keeper) CacheBlockHash(blockHash string, height int64) {
+	k.cachedBlockHash.BlockHash = blockHash
+	k.cachedBlockHash.Height = height
+}
+
+func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) error {
 	if k.networkMiddlewareAddress == "" {
 		panic("middleware address is not set")
 	}
 
-	validators, err := k.getSymbioticValidatorSet(ctx, blockHash)
-	if err != nil {
+	height := k.HeaderService.HeaderInfo(ctx).Height
+
+	if height%SYMBIOTIC_SYNC_PERIOD != 0 {
+		return nil
+	}
+
+	if k.cachedBlockHash.Height != height {
+		return fmt.Errorf("symbiotic no blockhash cache, actual cached height %v, expected %v", k.cachedBlockHash.Height, height)
+	}
+
+	if k.cachedBlockHash.BlockHash == INVALID_BLOCKHASH {
+		return nil
+	}
+
+	var validators []Validator
+	var err error
+
+	for i := 0; i < RETRIES; i++ {
+		validators, err = k.getSymbioticValidatorSet(ctx, k.cachedBlockHash.BlockHash)
+		if err == nil {
+			break
+		}
+
 		k.apiUrls.RotateEthUrl()
-		return err
+		time.Sleep(time.Millisecond * SLEEP_ON_RETRY)
 	}
 
 	for _, v := range validators {
@@ -137,19 +173,33 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context, blockHash st
 }
 
 func (k Keeper) GetFinalizedBlockHash(ctx context.Context) (string, error) {
-	slot := k.getSlot(ctx)
-	block, err := k.parseBlock(slot)
-	for errors.Is(err, stakingtypes.ErrSymbioticNotFound) { // some slots on api may be omitted
-		for i := 1; i < SLOTS_IN_EPOCH; i++ {
-			block, err = k.parseBlock(slot + i)
-			if err == nil {
-				break
-			}
-			if !errors.Is(err, stakingtypes.ErrSymbioticNotFound) {
-				return "", err
+	var err error
+	var block Block
+
+	for i := 0; i < RETRIES; i++ {
+		slot := k.getSlot(ctx)
+		block, err = k.parseBlock(slot)
+
+		for errors.Is(err, stakingtypes.ErrSymbioticNotFound) { // some slots on api may be omitted
+			for i := 1; i < SLOTS_IN_EPOCH; i++ {
+				block, err = k.parseBlock(slot + i)
+				if err == nil {
+					break
+				}
+				if !errors.Is(err, stakingtypes.ErrSymbioticNotFound) {
+					return "", err
+				}
 			}
 		}
+
+		if err == nil {
+			break
+		}
+
+		k.apiUrls.RotateBeaconUrl()
+		time.Sleep(time.Millisecond * SLEEP_ON_RETRY)
 	}
+
 	if err != nil {
 		return "", err
 	}
@@ -158,13 +208,28 @@ func (k Keeper) GetFinalizedBlockHash(ctx context.Context) (string, error) {
 }
 
 func (k Keeper) GetBlockByHash(ctx context.Context, blockHash string) (*types.Block, error) {
+	var block *types.Block
 	client, err := ethclient.Dial(k.apiUrls.GetEthApiUrl())
 	if err != nil {
 		return nil, err
 	}
 	defer client.Close()
 
-	return client.BlockByHash(ctx, common.HexToHash(blockHash))
+	for i := 0; i < RETRIES; i++ {
+		block, err = client.BlockByHash(ctx, common.HexToHash(blockHash))
+		if err == nil {
+			break
+		}
+
+		k.apiUrls.RotateEthUrl()
+		time.Sleep(time.Millisecond * SLEEP_ON_RETRY)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
 }
 
 func (k Keeper) GetMinBlockTimestamp(ctx context.Context) uint64 {

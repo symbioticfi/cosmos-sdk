@@ -111,9 +111,7 @@ func DeliverGenTxs(
 		}
 	}
 
-	if err := stakingKeeper.SymbioticUpdateValidatorsPower(ctx, initBlockHash); err != nil {
-		return nil, fmt.Errorf("failed to update symbiotic validators power: %w", err)
-	}
+	stakingKeeper.CacheBlockHash(initBlockHash, 0)
 
-	return stakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	return stakingKeeper.BlockValidatorUpdates(ctx)
 }
