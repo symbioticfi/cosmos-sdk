@@ -21,6 +21,9 @@ import (
 func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.ValidatorUpdate, error) {
 	// Calculate validator set changes.
 	//
+	if err := k.SymbioticUpdateValidatorsPower(ctx); err != nil {
+		panic(errors.Join(types.ErrSymbioticValUpdate, err))
+	}
 	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
 	// UnbondAllMatureValidatorQueue.
 	// This fixes a bug when the unbonding period is instant (is the case in

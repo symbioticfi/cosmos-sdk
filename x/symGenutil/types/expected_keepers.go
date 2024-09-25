@@ -2,10 +2,9 @@ package types
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/cosmos/cosmos-sdk/types/module"
-
+	"cosmossdk.io/core/appmodule"
 	bankexported "cosmossdk.io/x/bank/exported"
+	"encoding/json"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,8 +12,8 @@ import (
 
 // StakingKeeper defines the expected staking keeper (noalias)
 type StakingKeeper interface {
-	SymbioticUpdateValidatorsPower(ctx context.Context, blockHash string) error
-	ApplyAndReturnValidatorSetUpdates(context.Context) (updates []module.ValidatorUpdate, err error)
+	CacheBlockHash(blockHash string, height int64)
+	BlockValidatorUpdates(ctx context.Context) ([]appmodule.ValidatorUpdate, error)
 }
 
 // AccountKeeper defines the expected account keeper (noalias)

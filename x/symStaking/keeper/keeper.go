@@ -49,8 +49,9 @@ type Keeper struct {
 	validatorAddressCodec    addresscodec.Codec
 	consensusAddressCodec    addresscodec.Codec
 	cometInfoService         comet.Service
-	apiUrls                  *types.ApiUrls
+	apiUrls                  types.ApiUrls
 	networkMiddlewareAddress string
+	cachedBlockHash          CachedBlockHash
 
 	Schema collections.Schema
 
@@ -110,6 +111,7 @@ func NewKeeper(
 		consensusAddressCodec:    consensusAddressCodec,
 		cometInfoService:         cometInfoService,
 		apiUrls:                  types.NewApiUrls(),
+		cachedBlockHash:          CachedBlockHash{},
 		networkMiddlewareAddress: networkMiddlewareAddress,
 		LastTotalPower:           collections.NewItem(sb, types.LastTotalPowerKey, "last_total_power", sdk.IntValue),
 		HistoricalInfo:           collections.NewMap(sb, types.HistoricalInfoKey, "historical_info", collections.Uint64Key, HistoricalInfoCodec(cdc)),

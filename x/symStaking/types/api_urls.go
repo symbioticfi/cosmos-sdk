@@ -12,7 +12,7 @@ type ApiUrls struct {
 	currentEthId    int
 }
 
-func NewApiUrls() *ApiUrls {
+func NewApiUrls() ApiUrls {
 	// USE ONLY YOUR LOCAL BEACON CLIENT FOR SAFETY!!!
 	beaconApiUrls := strings.Split(os.Getenv("BEACON_API_URLS"), ",")
 	if len(beaconApiUrls) == 1 && beaconApiUrls[0] == "" {
@@ -31,7 +31,7 @@ func NewApiUrls() *ApiUrls {
 		ethApiUrls = append(ethApiUrls, "https://holesky.gateway.tenderly.co")
 	}
 
-	return &ApiUrls{beaconApiUrls: beaconApiUrls, ethApiUrls: ethApiUrls}
+	return ApiUrls{beaconApiUrls: beaconApiUrls, ethApiUrls: ethApiUrls}
 }
 
 func (au ApiUrls) GetEthApiUrl() string {
