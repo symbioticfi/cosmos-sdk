@@ -125,7 +125,7 @@ func (k *Keeper) CacheBlockHash(blockHash string, height int64) {
 	k.cachedBlockHash.Height = height
 }
 
-func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) error {
+func (k *Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) error {
 	if k.networkMiddlewareAddress == "" {
 		panic("middleware address is not set")
 	}
@@ -172,7 +172,7 @@ func (k Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) error {
 	return nil
 }
 
-func (k Keeper) GetFinalizedBlockHash(ctx context.Context) (string, error) {
+func (k *Keeper) GetFinalizedBlockHash(ctx context.Context) (string, error) {
 	var err error
 	var block Block
 
@@ -207,7 +207,7 @@ func (k Keeper) GetFinalizedBlockHash(ctx context.Context) (string, error) {
 	return block.Data.Message.Body.ExecutionPayload.BlockHash, nil
 }
 
-func (k Keeper) GetBlockByHash(ctx context.Context, blockHash string) (*types.Block, error) {
+func (k *Keeper) GetBlockByHash(ctx context.Context, blockHash string) (*types.Block, error) {
 	var block *types.Block
 	client, err := ethclient.Dial(k.apiUrls.GetEthApiUrl())
 	if err != nil {
