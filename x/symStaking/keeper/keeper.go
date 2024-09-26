@@ -51,10 +51,11 @@ type Keeper struct {
 	cometInfoService         comet.Service
 	apiUrls                  types.ApiUrls
 	networkMiddlewareAddress string
-	cachedBlockHash          CachedBlockHash
 
 	Schema collections.Schema
 
+	// CachedBlockHash value: CachedBlockHash
+	CachedBlockHash collections.Item[[]byte]
 	// HistoricalInfo key: Height | value: HistoricalInfo
 	HistoricalInfo collections.Map[uint64, types.HistoricalRecord]
 	// LastTotalPower value: LastTotalPower
@@ -111,8 +112,8 @@ func NewKeeper(
 		consensusAddressCodec:    consensusAddressCodec,
 		cometInfoService:         cometInfoService,
 		apiUrls:                  types.NewApiUrls(),
-		cachedBlockHash:          CachedBlockHash{},
 		networkMiddlewareAddress: networkMiddlewareAddress,
+		CachedBlockHash:          collections.NewItem(sb, types.CachedBlockHashKey, "cached_block_hash", collections.BytesValue),
 		LastTotalPower:           collections.NewItem(sb, types.LastTotalPowerKey, "last_total_power", sdk.IntValue),
 		HistoricalInfo:           collections.NewMap(sb, types.HistoricalInfoKey, "historical_info", collections.Uint64Key, HistoricalInfoCodec(cdc)),
 		UnbondingID:              collections.NewSequence(sb, types.UnbondingIDKey, "unbonding_id"),

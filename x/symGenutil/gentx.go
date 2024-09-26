@@ -111,7 +111,9 @@ func DeliverGenTxs(
 		}
 	}
 
-	stakingKeeper.CacheBlockHash(initBlockHash, 0)
+	if err := stakingKeeper.CacheBlockHash(ctx, stakingtypes.CachedBlockHash{BlockHash: initBlockHash, Height: 0}); err != nil {
+		return nil, fmt.Errorf("failed to cache block hash %w", err)
+	}
 
 	return stakingKeeper.BlockValidatorUpdates(ctx)
 }
