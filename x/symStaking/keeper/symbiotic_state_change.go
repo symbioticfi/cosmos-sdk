@@ -182,7 +182,7 @@ func (k *Keeper) GetFinalizedBlockHash(ctx context.Context) (string, error) {
 
 		for errors.Is(err, stakingtypes.ErrSymbioticNotFound) { // some slots on api may be omitted
 			for i := 1; i < SLOTS_IN_EPOCH; i++ {
-				block, err = k.parseBlock(slot + i)
+				block, err = k.parseBlock(slot - i)
 				if err == nil {
 					break
 				}
@@ -233,7 +233,7 @@ func (k *Keeper) GetBlockByHash(ctx context.Context, blockHash string) (*types.B
 }
 
 func (k Keeper) GetMinBlockTimestamp(ctx context.Context) uint64 {
-	return uint64(k.getSlot(ctx))*12 + BEACON_GENESIS_TIMESTAMP
+	return uint64(k.getSlot(ctx)-SLOTS_IN_EPOCH)*12 + BEACON_GENESIS_TIMESTAMP
 }
 
 func (k Keeper) getSymbioticValidatorSet(ctx context.Context, blockHash string) ([]Validator, error) {
@@ -292,7 +292,7 @@ func (k Keeper) getSymbioticValidatorSet(ctx context.Context, blockHash string) 
 func (k Keeper) getSlot(ctx context.Context) int {
 	slot := (k.HeaderService.HeaderInfo(ctx).Time.Unix() - BEACON_GENESIS_TIMESTAMP) / SLOT_DURATION // get beacon slot
 	slot = slot / SLOTS_IN_EPOCH * SLOTS_IN_EPOCH                                                    // first slot of epoch
-	slot -= 2 * SLOTS_IN_EPOCH                                                                       // get finalized slot
+	slot -= 3 * SLOTS_IN_EPOCH                                                                       // get finalized slot
 	return int(slot)
 }
 
