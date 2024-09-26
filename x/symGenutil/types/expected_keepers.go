@@ -4,6 +4,7 @@ import (
 	"context"
 	"cosmossdk.io/core/appmodule"
 	bankexported "cosmossdk.io/x/bank/exported"
+	stakingtypes "cosmossdk.io/x/symStaking/types"
 	"encoding/json"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -12,7 +13,7 @@ import (
 
 // StakingKeeper defines the expected staking keeper (noalias)
 type StakingKeeper interface {
-	CacheBlockHash(blockHash string, height int64)
+	CacheBlockHash(ctx context.Context, blockHash stakingtypes.CachedBlockHash) error
 	BlockValidatorUpdates(ctx context.Context) ([]appmodule.ValidatorUpdate, error)
 }
 

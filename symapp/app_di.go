@@ -4,15 +4,12 @@ package symapp
 
 import (
 	"cosmossdk.io/x/symStaking/abci"
-	stakingtypes "cosmossdk.io/x/symStaking/types"
 	_ "embed"
 	"fmt"
-	"io"
-	"path/filepath"
-	"strings"
-
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/spf13/cast"
+	"io"
+	"path/filepath"
 
 	clienthelpers "cosmossdk.io/client/v2/helpers"
 	"cosmossdk.io/core/appmodule"
@@ -228,7 +225,6 @@ func NewSymApp(
 		ba.SetVerifyVoteExtensionHandler(voteExtensionHandler.VerifyVoteExtension())
 		ba.SetPrepareProposal(abciPropHandler.PrepareProposal())
 		ba.SetPreBlocker(abciPropHandler.PreBlocker())
-		ba.AddRunTxRecoveryHandler(RecoverHandler)
 	})
 
 	app.App = appBuilder.Build(db, traceStore, baseAppOptions...)
@@ -436,20 +432,4 @@ func BlockedAddresses() map[string]bool {
 	}
 
 	return result
-}
-
-// we use this handler to restart on failure on our errors
-func RecoverHandler(recoveryObj interface{}) error {
-	err, ok := recoveryObj.(error)
-	if !ok || err == nil {
-		return nil
-	}
-	if stakingtypes.ErrSymbioticValUpdate.Is(err) {
-		panic(fmt.Errorf("symbiotic panic: %w", err))
-	}
-	// IDK after this error node stops receiving blocks
-	if strings.Contains(err.Error(), "peer is not sending us data fast enough") {
-		panic(fmt.Errorf("Consensus peer error: %w", err))
-	}
-	return err
 }

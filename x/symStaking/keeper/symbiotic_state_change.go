@@ -57,11 +57,6 @@ type Validator struct {
 	ConsAddr [32]byte
 }
 
-type CachedBlockHash struct {
-	BlockHash string
-	Height    int64
-}
-
 const (
 	SYMBIOTIC_SYNC_PERIOD           = 10
 	SLEEP_ON_RETRY                  = 200
@@ -120,9 +115,13 @@ const (
 	]`
 )
 
-func (k *Keeper) CacheBlockHash(blockHash string, height int64) {
-	k.cachedBlockHash.BlockHash = blockHash
-	k.cachedBlockHash.Height = height
+func (k *Keeper) CacheBlockHash(ctx context.Context, blockHash stakingtypes.CachedBlockHash) error {
+	bz, err := json.Marshal(blockHash)
+	if err != nil {
+		return err
+	}
+	err = k.CachedBlockHash.Set(ctx, bz)
+	return err
 }
 
 func (k *Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) error {
@@ -136,19 +135,38 @@ func (k *Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) error {
 		return nil
 	}
 
-	if k.cachedBlockHash.Height != height {
-		return fmt.Errorf("symbiotic no blockhash cache, actual cached height %v, expected %v", k.cachedBlockHash.Height, height)
+	exist, err := k.CachedBlockHash.Has(ctx)
+	if err != nil {
+		return err
 	}
 
-	if k.cachedBlockHash.BlockHash == INVALID_BLOCKHASH {
+	if !exist {
+		return nil
+	}
+
+	data, err := k.CachedBlockHash.Get(ctx)
+	if err != nil {
+		return err
+	}
+
+	var cachedBlockHash stakingtypes.CachedBlockHash
+
+	if err := json.Unmarshal(data, &cachedBlockHash); err != nil {
+		return err
+	}
+
+	if cachedBlockHash.Height != height { // TODO need to research failures on processProposal, mb better to skip block if height is old
+		return fmt.Errorf("symbiotic no blockhash cache, actual cached height %v, expected %v", cachedBlockHash.Height, height)
+	}
+
+	if cachedBlockHash.BlockHash == INVALID_BLOCKHASH {
 		return nil
 	}
 
 	var validators []Validator
-	var err error
 
 	for i := 0; i < RETRIES; i++ {
-		validators, err = k.getSymbioticValidatorSet(ctx, k.cachedBlockHash.BlockHash)
+		validators, err = k.getSymbioticValidatorSet(ctx, cachedBlockHash.BlockHash)
 		if err == nil {
 			break
 		}

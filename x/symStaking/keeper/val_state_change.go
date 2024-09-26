@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	gogotypes "github.com/cosmos/gogoproto/types"
+	"os"
 	"sort"
 
 	"cosmossdk.io/core/address"
@@ -22,7 +23,8 @@ func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.Validato
 	// Calculate validator set changes.
 	//
 	if err := k.SymbioticUpdateValidatorsPower(ctx); err != nil {
-		panic(errors.Join(types.ErrSymbioticValUpdate, err))
+		k.Logger.Error("Symbiotic val update panic", "err", err)
+		os.Exit(0) // TODO somehow fix, just to restart on failure, panic will be recovered
 	}
 	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
 	// UnbondAllMatureValidatorQueue.
