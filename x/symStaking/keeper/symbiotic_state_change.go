@@ -175,6 +175,10 @@ func (k *Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) error {
 		time.Sleep(time.Millisecond * SLEEP_ON_RETRY)
 	}
 
+	if err != nil {
+		return err
+	}
+
 	for _, v := range validators {
 		val, err := k.GetValidatorByConsAddr(ctx, v.ConsAddr[:20])
 		if err != nil {
@@ -257,6 +261,7 @@ func (k Keeper) GetMinBlockTimestamp(ctx context.Context) uint64 {
 func (k Keeper) getSymbioticValidatorSet(ctx context.Context, blockHash string) ([]Validator, error) {
 	client, err := ethclient.Dial(k.apiUrls.GetEthApiUrl())
 	if err != nil {
+		k.Logger.Error("rpc error: ethclient dial error", "url", k.apiUrls.GetEthApiUrl(), "err", err)
 		return nil, err
 	}
 	defer client.Close()
@@ -279,6 +284,7 @@ func (k Keeper) getSymbioticValidatorSet(ctx context.Context, blockHash string) 
 	}
 	result, err := client.CallContractAtHash(ctx, query, common.HexToHash(blockHash))
 	if err != nil {
+		k.Logger.Error("rpc error: eth_call error", "url", k.apiUrls.GetEthApiUrl(), "err", err)
 		return nil, err
 	}
 
@@ -295,6 +301,7 @@ func (k Keeper) getSymbioticValidatorSet(ctx context.Context, blockHash string) 
 	}
 	result, err = client.CallContractAtHash(ctx, query, common.HexToHash(blockHash))
 	if err != nil {
+		k.Logger.Error("rpc error: eth_call error", "url", k.apiUrls.GetEthApiUrl(), "err", err)
 		return nil, err
 	}
 
@@ -320,9 +327,14 @@ func (k Keeper) parseBlock(slot int) (Block, error) {
 	var block Block
 	resp, err := http.Get(url)
 	if err != nil {
+		k.Logger.Error("rpc error: beacon rpc call error", "url", url, "err", err)
 		return block, fmt.Errorf("error making HTTP request: %v", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		k.Logger.Error("rpc error: beacon rpc call error", "url", k.apiUrls.GetEthApiUrl(), "err", "no err", "status", resp.StatusCode)
+	}
 
 	if resp.StatusCode == http.StatusNotFound {
 		return block, stakingtypes.ErrSymbioticNotFound
