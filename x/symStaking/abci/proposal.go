@@ -8,6 +8,7 @@ import (
 	"errors"
 	abci "github.com/cometbft/cometbft/abci/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"os"
 )
 
 type ProposalHandler struct {
@@ -67,13 +68,19 @@ func (h *ProposalHandler) PreBlocker() sdk.PreBlocker {
 			return err
 		}
 
-		block, err := h.keeper.GetBlockByHash(ctx, blockHash)
-		if err != nil {
+		if blockHash == keeper2.INVALID_BLOCKHASH {
+			err := h.keeper.CacheBlockHash(ctx, stakingtypes.CachedBlockHash{BlockHash: keeper2.INVALID_BLOCKHASH, Height: req.Height})
 			return err
 		}
 
+		block, err := h.keeper.GetBlockByHash(ctx, blockHash)
+		if err != nil {
+			h.logger.Error("PreBlocker error get block by hash error", "err", err)
+			os.Exit(0) // panic recovers
+		}
+
 		if block.Time() < h.prevBlockTime || int64(block.Time()) >= ctx.HeaderInfo().Time.Unix() || block.Time() < h.keeper.GetMinBlockTimestamp(ctx) {
-			err := h.keeper.CacheBlockHash(ctx, stakingtypes.CachedBlockHash{BlockHash: blockHash, Height: req.Height})
+			err := h.keeper.CacheBlockHash(ctx, stakingtypes.CachedBlockHash{BlockHash: keeper2.INVALID_BLOCKHASH, Height: req.Height})
 			return err
 		}
 
