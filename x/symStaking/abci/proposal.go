@@ -8,6 +8,7 @@ import (
 	"errors"
 	abci "github.com/cometbft/cometbft/abci/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum"
 	"os"
 )
 
@@ -63,24 +64,31 @@ func (h *ProposalHandler) PreBlocker() sdk.PreBlocker {
 			return nil
 		}
 
+		skipBlockHash := stakingtypes.CachedBlockHash{BlockHash: keeper2.INVALID_BLOCKHASH, Height: req.Height}
+
 		var blockHash string
 		if err := json.Unmarshal(req.Txs[0], &blockHash); err != nil {
 			return err
 		}
 
 		if blockHash == keeper2.INVALID_BLOCKHASH {
-			err := h.keeper.CacheBlockHash(ctx, stakingtypes.CachedBlockHash{BlockHash: keeper2.INVALID_BLOCKHASH, Height: req.Height})
+			err := h.keeper.CacheBlockHash(ctx, skipBlockHash)
 			return err
 		}
 
 		block, err := h.keeper.GetBlockByHash(ctx, blockHash)
+		if errors.Is(err, ethereum.NotFound) {
+			h.logger.Warn("Preblock: Block not found")
+			err := h.keeper.CacheBlockHash(ctx, skipBlockHash)
+			return err
+		}
 		if err != nil {
 			h.logger.Error("PreBlocker error get block by hash error", "err", err)
 			os.Exit(0) // panic recovers
 		}
 
 		if block.Time() < h.prevBlockTime || int64(block.Time()) >= ctx.HeaderInfo().Time.Unix() || block.Time() < h.keeper.GetMinBlockTimestamp(ctx) {
-			err := h.keeper.CacheBlockHash(ctx, stakingtypes.CachedBlockHash{BlockHash: keeper2.INVALID_BLOCKHASH, Height: req.Height})
+			err := h.keeper.CacheBlockHash(ctx, skipBlockHash)
 			return err
 		}
 
