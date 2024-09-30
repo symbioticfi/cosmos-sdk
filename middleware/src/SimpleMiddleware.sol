@@ -259,7 +259,7 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
                 continue;
             }
 
-            uint256 stake = getOperatorStake(operator, epochStartTs);
+            uint256 stake = getOperatorStake(operator, epoch);
 
             validatorsData[valIdx++] = ValidatorData(stake, key);
         }
@@ -330,7 +330,7 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
                 continue;
             }
 
-            uint256 operatorStake = getOperatorStake(operator, epochStartTs);
+            uint256 operatorStake = getOperatorStake(operator, epoch);
             operatorStakeCache[epoch][operator] = operatorStake;
 
             totalStake += operatorStake;
@@ -360,7 +360,7 @@ contract SimpleMiddleware is SimpleKeyRegistry32, Ownable {
                 continue;
             }
 
-            uint256 operatorStake = getOperatorStake(operator, epochStartTs);
+            uint256 operatorStake = getOperatorStake(operator, epoch);
             totalStake += operatorStake;
         }
     }
