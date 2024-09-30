@@ -3,13 +3,13 @@
 package symapp
 
 import (
+	"cosmossdk.io/x/symStaking/abci"
 	_ "embed"
 	"fmt"
-	"io"
-	"path/filepath"
-
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/spf13/cast"
+	"io"
+	"path/filepath"
 
 	clienthelpers "cosmossdk.io/client/v2/helpers"
 	"cosmossdk.io/core/appmodule"
@@ -217,18 +217,15 @@ func NewSymApp(
 	//
 	// Example:
 	//
-	// prepareOpt = func(app *baseapp.BaseApp) {
-	// 	abciPropHandler := baseapp.NewDefaultProposalHandler(nonceMempool, app)
-	// 	app.SetPrepareProposal(abciPropHandler.PrepareProposalHandler())
-	// }
-	// baseAppOptions = append(baseAppOptions, prepareOpt)
-
 	// create and set dummy vote extension handler
-	voteExtOp := func(bApp *baseapp.BaseApp) {
-		voteExtHandler := NewVoteExtensionHandler()
-		voteExtHandler.SetHandlers(bApp)
-	}
-	baseAppOptions = append(baseAppOptions, voteExtOp, baseapp.SetOptimisticExecution())
+	abciPropHandler := abci.NewProposalHandler(logger, app.StakingKeeper)
+	voteExtensionHandler := abci.NewVoteExtensionHandler()
+	baseAppOptions = append(baseAppOptions, func(ba *baseapp.BaseApp) {
+		ba.SetExtendVoteHandler(voteExtensionHandler.ExtendVote())
+		ba.SetVerifyVoteExtensionHandler(voteExtensionHandler.VerifyVoteExtension())
+		ba.SetPrepareProposal(abciPropHandler.PrepareProposal())
+		ba.SetPreBlocker(abciPropHandler.PreBlocker())
+	})
 
 	app.App = appBuilder.Build(db, traceStore, baseAppOptions...)
 

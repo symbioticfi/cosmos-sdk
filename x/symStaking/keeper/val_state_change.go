@@ -5,10 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
-	"time"
-
 	gogotypes "github.com/cosmos/gogoproto/types"
+	"os"
+	"sort"
 
 	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/appmodule"
@@ -22,27 +21,11 @@ import (
 // Called in each EndBlock
 func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]appmodule.ValidatorUpdate, error) {
 	// Calculate validator set changes.
-
-	var err error
-	for i := 0; i < 5; i++ { // retry 5 times with different providers
-		beaconUrl := k.apiUrls.GetBeaconApiUrl()
-		ethApiUrl := k.apiUrls.GetEthApiUrl()
-
-		_, err = k.SymbioticUpdateValidatorsPower(ctx)
-		if err == nil {
-			break
-		}
-
-		k.Logger.Warn("Update validator power error; Trying ...", "error", err, "beacon", beaconUrl, "eth", ethApiUrl)
-
-		time.Sleep(time.Millisecond * 200)
-	}
-
-	if err != nil {
-		panic(errors.Join(types.ErrSymbioticValUpdate, err))
-	}
-
 	//
+	if err := k.SymbioticUpdateValidatorsPower(ctx); err != nil {
+		k.Logger.Error("Symbiotic val update panic", "err", err)
+		os.Exit(0) // TODO somehow fix, just to restart on failure, panic will be recovered
+	}
 	// NOTE: ApplyAndReturnValidatorSetUpdates has to come before
 	// UnbondAllMatureValidatorQueue.
 	// This fixes a bug when the unbonding period is instant (is the case in

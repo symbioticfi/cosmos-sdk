@@ -49,7 +49,10 @@ var (
 	ValidatorQueueKey = collections.NewPrefix(67) // prefix for the timestamps in validator queue
 
 	HistoricalInfoKey = collections.NewPrefix(80) // prefix for the historical info
-	ParamsKey         = collections.NewPrefix(81) // prefix for parameters for module x/symStaking                     = collections.NewPrefix(106) // prefix for rotated cons address to new cons address
+	ParamsKey         = collections.NewPrefix(81) // prefix for parameters for module x/symStaking
+
+	CachedBlockHashKey = collections.NewPrefix(90) // prefix for finalized blockhash
+
 )
 
 // Reserved kvstore keys

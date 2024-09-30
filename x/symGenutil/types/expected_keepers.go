@@ -2,18 +2,19 @@ package types
 
 import (
 	"context"
-	"encoding/json"
-
+	"cosmossdk.io/core/appmodule"
 	bankexported "cosmossdk.io/x/bank/exported"
+	stakingtypes "cosmossdk.io/x/symStaking/types"
+	"encoding/json"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
 )
 
 // StakingKeeper defines the expected staking keeper (noalias)
 type StakingKeeper interface {
-	BlockValidatorUpdates(context.Context) (updates []module.ValidatorUpdate, err error)
+	CacheBlockHash(ctx context.Context, blockHash stakingtypes.CachedBlockHash) error
+	BlockValidatorUpdates(ctx context.Context) ([]appmodule.ValidatorUpdate, error)
 }
 
 // AccountKeeper defines the expected account keeper (noalias)

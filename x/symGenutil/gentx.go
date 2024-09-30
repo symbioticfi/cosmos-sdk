@@ -90,7 +90,7 @@ func ValidateAccountInGenesis(
 // invokes the provided deliverTxfn with the decoded Tx. It returns the result
 // of the staking module's ApplyAndReturnValidatorSetUpdates.
 func DeliverGenTxs(
-	ctx context.Context, genTxs []json.RawMessage,
+	ctx context.Context, initBlockHash string, genTxs []json.RawMessage,
 	stakingKeeper types.StakingKeeper, deliverTx genesis.TxHandler,
 	txEncodingConfig client.TxEncodingConfig,
 ) ([]module.ValidatorUpdate, error) {
@@ -109,6 +109,10 @@ func DeliverGenTxs(
 		if err != nil {
 			return nil, fmt.Errorf("failed to execute DeliverTx for '%s': %w", genTx, err)
 		}
+	}
+
+	if err := stakingKeeper.CacheBlockHash(ctx, stakingtypes.CachedBlockHash{BlockHash: initBlockHash, Height: 0}); err != nil {
+		return nil, fmt.Errorf("failed to cache block hash %w", err)
 	}
 
 	return stakingKeeper.BlockValidatorUpdates(ctx)
