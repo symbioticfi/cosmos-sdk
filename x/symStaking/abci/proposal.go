@@ -77,7 +77,7 @@ func (h *ProposalHandler) PreBlocker() sdk.PreBlocker {
 		}
 
 		block, err := h.keeper.GetBlockByHash(ctx, blockHash)
-		if errors.Is(err, ethereum.NotFound) {
+		if errors.Is(err, ethereum.NotFound) || block.Hash().String() != blockHash {
 			h.logger.Warn("Preblock: Block not found")
 			err := h.keeper.CacheBlockHash(ctx, skipBlockHash)
 			return err
