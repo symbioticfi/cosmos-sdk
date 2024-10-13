@@ -171,6 +171,12 @@ func (k *Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) error {
 			break
 		}
 
+		if strings.HasSuffix(err.Error(), "is not currently canonical") {
+			k.Logger.Warn("not canonical block hash", "hash", cachedBlockHash.BlockHash)
+			err = nil
+			break
+		}
+
 		k.apiUrls.RotateEthUrl()
 		time.Sleep(time.Millisecond * SLEEP_ON_RETRY)
 	}
