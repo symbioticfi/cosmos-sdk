@@ -173,6 +173,7 @@ func (k *Keeper) SymbioticUpdateValidatorsPower(ctx context.Context) error {
 
 		if strings.HasSuffix(err.Error(), "is not currently canonical") {
 			k.Logger.Warn("not canonical block hash", "hash", cachedBlockHash.BlockHash)
+			err = nil
 			break
 		}
 
