@@ -22,7 +22,8 @@ import (
 
 // Struct to unmarshal the response from the Beacon Chain API
 type Block struct {
-	Data struct {
+	Finalized bool `json:"finalized"`
+	Data      struct {
 		Message struct {
 			Body struct {
 				ExecutionPayload struct {
@@ -226,6 +227,10 @@ func (k *Keeper) GetFinalizedBlockHash(ctx context.Context) (string, error) {
 		return "", err
 	}
 
+	if !block.Finalized {
+		return INVALID_BLOCKHASH, nil
+	}
+
 	return block.Data.Message.Body.ExecutionPayload.BlockHash, nil
 }
 
@@ -239,6 +244,31 @@ func (k *Keeper) GetBlockByHash(ctx context.Context, blockHash string) (*types.B
 
 	for i := 0; i < RETRIES; i++ {
 		block, err = client.BlockByHash(ctx, common.HexToHash(blockHash))
+		if err == nil {
+			break
+		}
+
+		k.apiUrls.RotateEthUrl()
+		time.Sleep(time.Millisecond * SLEEP_ON_RETRY)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}
+
+func (k *Keeper) GetBlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
+	var block *types.Block
+	client, err := ethclient.Dial(k.apiUrls.GetEthApiUrl())
+	if err != nil {
+		return nil, err
+	}
+	defer client.Close()
+
+	for i := 0; i < RETRIES; i++ {
+		block, err = client.BlockByNumber(ctx, number)
 		if err == nil {
 			break
 		}
