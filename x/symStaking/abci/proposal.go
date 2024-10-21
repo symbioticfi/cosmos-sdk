@@ -77,14 +77,26 @@ func (h *ProposalHandler) PreBlocker() sdk.PreBlocker {
 		}
 
 		block, err := h.keeper.GetBlockByHash(ctx, blockHash)
-		if errors.Is(err, ethereum.NotFound) || block.Hash().String() != blockHash {
-			h.logger.Warn("Preblock: Block not found")
+		if errors.Is(err, ethereum.NotFound) {
+			h.logger.Error("Preblock: Block not found", "hash", blockHash)
 			err := h.keeper.CacheBlockHash(ctx, skipBlockHash)
 			return err
 		}
 		if err != nil {
 			h.logger.Error("PreBlocker error get block by hash error", "err", err)
 			os.Exit(0) // panic recovers
+		}
+
+		block, err = h.keeper.GetBlockByNumber(ctx, block.Number())
+		if err != nil {
+			h.logger.Error("PreBlocker error get block by hash error", "err", err)
+			os.Exit(0) // panic recovers
+		}
+		// very specific error caused by finalized check bug, ideally this check shouldn't exist
+		if block.Hash().String() != blockHash {
+			h.logger.Error("Preblock: Block is not finalized", "hash", blockHash)
+			err := h.keeper.CacheBlockHash(ctx, skipBlockHash)
+			return err
 		}
 
 		if block.Time() < h.prevBlockTime || int64(block.Time()) >= ctx.HeaderInfo().Time.Unix() || block.Time() < h.keeper.GetMinBlockTimestamp(ctx) {
