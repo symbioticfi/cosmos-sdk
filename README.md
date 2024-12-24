@@ -1,4 +1,4 @@
-## ⚠️ Disclaimer: This code is NOT intended for a production use.
+## ⚠️ DEPRECATION: The stubchain is deprecated and no longer supported, however, the code remains public for demonstration purposes.
 
 # Symbiotic cosmos-sdk example (stubchain)
 
